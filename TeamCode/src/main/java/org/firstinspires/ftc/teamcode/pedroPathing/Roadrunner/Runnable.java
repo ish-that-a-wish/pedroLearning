@@ -43,7 +43,7 @@ public class Runnable extends LinearOpMode {
     public void buildPaths(){
         path1 = follower.pathBuilder()
                 .addPath(new BezierLine(initPose, endPose))
-                .addPoseCallback(new Pose(0,0), ()-> Actions.runBlocking(new MoveSlideAction(this.hardwareMap, 1000)), 0.5)
+                .addPoseCallback(new Pose(0,0), ()-> Actions.runBlocking(new MoveSlideAction(this.hardwareMap, 1000, true)), 0.5)
                 .setConstantHeadingInterpolation(Math.toRadians(90))
                 .build();
     }

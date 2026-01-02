@@ -21,7 +21,7 @@ public class TestAuto extends LinearOpMode {
         while(opModeIsActive()){
             Actions.runBlocking(
                     new ParallelAction(
-                            new MoveSlideAction(this.hardwareMap, ticks)
+                            new MoveSlideAction(this.hardwareMap, ticks, true)
                     )
             );
         }
