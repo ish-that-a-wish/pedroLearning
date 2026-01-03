@@ -2,10 +2,12 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Roadrunner;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 @Config
+@Disabled
 @Autonomous
 public class MoveSlide extends LinearOpMode {
     public static int ticks = 1000;

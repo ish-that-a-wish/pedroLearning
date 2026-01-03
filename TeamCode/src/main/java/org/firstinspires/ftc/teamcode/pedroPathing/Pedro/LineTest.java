@@ -9,8 +9,9 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-
+@Disabled
 @Autonomous
 public class LineTest extends OpMode {
     public Follower follower =  Constants.createFollower(this.hardwareMap);

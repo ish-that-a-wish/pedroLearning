@@ -1,5 +1,29 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.GATE_PICKUP;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.GATE_PICKUP_NO_INTAKE;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.HUMAN_PLAYER_PICKUP;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.INIT_POSE;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.SECRET_TUNNEL_AFTER_SHOOTING;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.SECRET_TUNNEL_INTAKE;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.SHOOTING_POSE;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveOffLaunchLine;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToGate;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToGateNoIntake;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToHumanPlayer;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToSecretTunnelAfterShooting;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToShootAfterSecretTunnelShooting;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToShootGate;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToShootGateNoIntake;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToShootHumanPlayer;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToShootSpike1;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToShootSpike2;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToSpike1Pickup;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.moveToSpike2Pickup;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.postSecretTunnel;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.preHumanPlayer;
+import static org.firstinspires.ftc.teamcode.pedroPathing.FarConstants.preSecretTunnelAfterGate;
+
 import android.util.Log;
 
 import com.acmerobotics.roadrunner.SleepAction;
@@ -19,21 +43,27 @@ import org.firstinspires.ftc.teamcode.pedroPathing.CallBacks.WaitCallback;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.Constants;
 import com.acmerobotics.roadrunner.Action.*;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 
 @Autonomous
 public class AutoFar extends LinearOpMode {
-
+    //CHANGE SO THE LIST CHECKS ANY ACTION HAS BEEN CLICKED TWICE FOR EVERYTHING BESIDES SECRET TUNNEL AND HUMAN PLAYER
+    public boolean isFirstSpikePressed = false;
+    public boolean isSecondSpikePressed = false;
+    public boolean isGatePressed = false;
+    public boolean isMovedOffLineAtEnd = false;
     /* ---------------- ENUM ---------------- */
 
     public enum AutoAction {
         FIRST_SPIKE,
         SECOND_SPIKE,
         GATE_PICKUP,
-        HUMAN_PLAYER
+        HUMAN_PLAYER,
+        GATE_NO_INTAKE,
+        MOVE_OFF_LINE,
+        SECRET_TUNNEL
     }
     /* ---------------- FIELDS ---------------- */
 
@@ -45,56 +75,27 @@ public class AutoFar extends LinearOpMode {
 
     private double waitSeconds = 5.0;
 
-
-    /* ---------------- POSES ---------------- */
-    public Pose INIT_POSE = new Pose(56, 8, Math.toRadians(180));
-
-    public static Pose FIRST_SPIKE = new Pose(27, 35, Math.toRadians(180));
-    public static Pose SECOND_SPIKE = new Pose(27, 60, Math.toRadians(180));
-
-    public static Pose SHOOTING_POSE = new Pose(56, 18, Math.toRadians(180));
-    public static Pose GATE_PICKUP = new Pose(14, 63, Math.toRadians(135));
-    public static Pose SHOOTING_AFTER_GATE = new Pose(56, 18, Math.toRadians(270));
-
-    public static Pose PRE_HUMAN_PLAYER = new Pose(15, 30, Math.toRadians(270));
-    public static Pose HUMAN_PLAYER_PICKUP = new Pose(15, 20, Math.toRadians(270));
-
-    private Pose CONTROL_POINT_FIRST_SPIKE = new Pose(56, 40);
-    private Pose CONTROL_POINT_SECOND_SPIKE = new Pose(55, 63);
-
     /* ---------------- PATHS ---------------- */
 
     private PathChain pickUpSpike1;
     private PathChain pickUpSpike2;
     private PathChain gatePickup;
     private PathChain humanPlayerPickup;
+    public PathChain gateNoIntake;
+    public PathChain secretTunnelAfterGate;
+    public PathChain gateNoShoot;
+    public PathChain secretTunnelAfterShot;
     public Boolean waiting = false;
     public ArrayList<Path> pathsToAddWait = new ArrayList<>();
     /* ---------------- OPMODE ---------------- */
 
-    public Path moveToSpike1Pickup = new Path(new BezierCurve(INIT_POSE, CONTROL_POINT_FIRST_SPIKE, FIRST_SPIKE));
-    public Path moveToShootSpike1 = new Path(new BezierLine(FIRST_SPIKE, SHOOTING_POSE));
-    public Path moveToSpike2Pickup = new Path(new BezierCurve(SHOOTING_POSE, CONTROL_POINT_SECOND_SPIKE, SECOND_SPIKE));
-    public Path moveToShootSpike2 = new Path(new BezierLine(SECOND_SPIKE, SHOOTING_POSE));
-    public Path moveToGate = new Path(new BezierLine(SHOOTING_POSE, GATE_PICKUP));
-    public Path moveToShootGate = new Path(new BezierLine(GATE_PICKUP, SHOOTING_AFTER_GATE));
-    public Path preHumanPlayer = new Path(new BezierLine(SHOOTING_AFTER_GATE, PRE_HUMAN_PLAYER));
-    public Path moveToHumanPlayer = new Path(new BezierLine(PRE_HUMAN_PLAYER, HUMAN_PLAYER_PICKUP));
-    public Path moveToShootHumanPlayer = new Path(new BezierLine(HUMAN_PLAYER_PICKUP, SHOOTING_AFTER_GATE));
 
     @Override
     public void runOpMode() throws InterruptedException {
-//        pathsToAddWait.add(
-//                new Path(new BezierCurve(INIT_POSE, CONTROL_POINT_FIRST_SPIKE, FIRST_SPIKE))
-//        );
-//        pathsToAddWait.add(
-//                new Path(new BezierLine(FIRST_SPIKE, SHOOTING_POSE))
-//        );
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(INIT_POSE);
 
         buildPaths();
-//        pickUpSpike1 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 0.9);
         /* -------- INIT BUTTON SELECTION -------- */
 
         while (opModeInInit()) {
@@ -102,6 +103,14 @@ public class AutoFar extends LinearOpMode {
                 if (!orderToPickup.isEmpty()) {
                     //wait logic
                     AutoAction lastAction = orderToPickup.get(orderToPickup.size() - 1); // get the last element of the order to pickup
+                    if(lastAction == AutoAction.GATE_NO_INTAKE){
+                        telemetry.addData("ADDING WAITS TO: ", "FIRST SPIKE");
+                        Log.i("WAITING: ", "FIRST SPIKE");
+                        pathsToAddWait.add(moveToGateNoIntake);
+                        pathsToAddWait.add(moveToShootGateNoIntake);
+                        gateNoIntake = buildPathChainWithWait(pathsToAddWait, Math.toRadians(270), 0.9);
+                        pathsToAddWait.clear();
+                    }
                     if (lastAction == AutoAction.FIRST_SPIKE) {
                         telemetry.addData("ADDING WAITS TO: ", "FIRST SPIKE");
                         Log.i("WAITING: ", "FIRST SPIKE");
@@ -138,23 +147,40 @@ public class AutoFar extends LinearOpMode {
 
                 }
             }
-            if (gamepad1.aWasReleased()) {
+            if (gamepad1.aWasReleased() && !isFirstSpikePressed) {
                 orderToPickup.add(AutoAction.FIRST_SPIKE);
+                isFirstSpikePressed = true;
             }
 
-            if (gamepad1.bWasReleased()) {
+            if (gamepad1.bWasReleased() && !isSecondSpikePressed) {
                 orderToPickup.add(AutoAction.SECOND_SPIKE);
+                isSecondSpikePressed = true;
             }
 
-            if (gamepad1.yWasReleased()) {
+            if (gamepad1.yWasReleased() && !isGatePressed) {
                 orderToPickup.add(AutoAction.GATE_PICKUP);
+                isGatePressed = true;
             }
 
             if (gamepad1.xWasReleased()) {
                 orderToPickup.add(AutoAction.HUMAN_PLAYER);
             }
+            if(gamepad1.dpadDownWasReleased()){
+                orderToPickup.add(AutoAction.GATE_NO_INTAKE);
+            }
+            if(gamepad1.dpadLeftWasReleased()){
+                orderToPickup.add(AutoAction.MOVE_OFF_LINE);
+            }
+            if(gamepad1.dpadRightWasReleased()){
+                orderToPickup.add(AutoAction.SECRET_TUNNEL);
+            }
             if (orderToPickup.contains(AutoAction.FIRST_SPIKE) && orderToPickup.contains(AutoAction.HUMAN_PLAYER)) {
                 if (orderToPickup.indexOf(AutoAction.FIRST_SPIKE) > orderToPickup.indexOf(AutoAction.HUMAN_PLAYER)) {
+                    telemetry.addData("WARNING: ", "INTAKING FIRST SPIKE BEFORE HUMAN PLAYER");
+                }
+            }
+            if (orderToPickup.contains(AutoAction.SECOND_SPIKE) && orderToPickup.contains(AutoAction.GATE_NO_INTAKE)) {
+                if (orderToPickup.indexOf(AutoAction.SECOND_SPIKE) > orderToPickup.indexOf(AutoAction.GATE_NO_INTAKE)) {
                     telemetry.addData("WARNING: ", "INTAKING FIRST SPIKE BEFORE HUMAN PLAYER");
                 }
             }
@@ -173,7 +199,10 @@ public class AutoFar extends LinearOpMode {
         /* -------- AUTON LOOP -------- */
 
         while (opModeIsActive()) {
-
+            if(!isMovedOffLineAtEnd){
+                moveMoveOffLineToEnd();
+                isMovedOffLineAtEnd = true;
+            }
             if (waiting && waitTimer.seconds() >= waitSeconds) {
                 follower.resumePathFollowing();
                 waiting = false;
@@ -181,7 +210,7 @@ public class AutoFar extends LinearOpMode {
             }
             follower.update();
             runPaths();
-
+            telemetry.addData("ACTION ORDER: ", orderToPickup);
             telemetry.addData("Current Action Index", actionIndex);
             telemetry.addData("Queue Size", orderToPickup.size());
             telemetry.update();
@@ -192,32 +221,11 @@ public class AutoFar extends LinearOpMode {
 
     private void buildPaths() {
 
-        pickUpSpike1 = follower.pathBuilder()
-                .addPath(moveToSpike1Pickup)
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(moveToShootSpike1)
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .build();
+        pickUpSpike1 = buildAPath(moveToSpike1Pickup, moveToShootSpike1, Math.toRadians(180));
 
-        pickUpSpike2 = follower.pathBuilder()
-                .addPath(moveToSpike2Pickup)
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(moveToShootSpike2)
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .build();
+        pickUpSpike2 = buildAPath(moveToSpike2Pickup, moveToShootSpike2, Math.toRadians(180));
 
-        gatePickup = follower.pathBuilder()
-                .addPath(moveToGate)
-                .setLinearHeadingInterpolation(
-                        SHOOTING_POSE.getHeading(),
-                        GATE_PICKUP.getHeading()
-                )
-                .addPath(moveToShootGate)
-                .setLinearHeadingInterpolation(
-                        GATE_PICKUP.getHeading(),
-                        SHOOTING_AFTER_GATE.getHeading()
-                )
-                .build();
+        gatePickup = buildAPath(moveToGate, moveToShootGate, GATE_PICKUP.getHeading(), SHOOTING_POSE.getHeading());
 
         humanPlayerPickup = follower.pathBuilder()
                 .addPath(preHumanPlayer)
@@ -225,8 +233,23 @@ public class AutoFar extends LinearOpMode {
                 .addPath(moveToHumanPlayer)
                 .setConstantHeadingInterpolation(Math.toRadians(270))
                 .addPath(moveToShootHumanPlayer)
-                .setConstantHeadingInterpolation(Math.toRadians(270))
+                .setLinearHeadingInterpolation(HUMAN_PLAYER_PICKUP.getHeading(), SHOOTING_POSE.getHeading())
                 .build();
+
+        gateNoIntake = buildAPath(moveToGate, moveToShootGateNoIntake, Math.toRadians(180));
+
+        secretTunnelAfterGate = follower.pathBuilder()
+                .addPath(preSecretTunnelAfterGate)
+                .setConstantHeadingInterpolation(Math.toRadians(180))
+                .addPath(postSecretTunnel)
+                .setLinearHeadingInterpolation(SECRET_TUNNEL_INTAKE.getHeading(), SHOOTING_POSE.getHeading())
+                .build();
+        gateNoShoot = follower.pathBuilder()
+                .addPath(moveToGate)
+                .setConstantHeadingInterpolation(Math.toRadians(180))
+                .setLinearHeadingInterpolation(SHOOTING_POSE.getHeading(), GATE_PICKUP_NO_INTAKE.getHeading())
+                .build();
+        secretTunnelAfterShot = buildAPath(moveToSecretTunnelAfterShooting, moveToShootAfterSecretTunnelShooting, SECRET_TUNNEL_AFTER_SHOOTING.getHeading(), SHOOTING_POSE.getHeading());
     }
 
     /* ---------------- STATE MACHINE ---------------- */
@@ -237,7 +260,6 @@ public class AutoFar extends LinearOpMode {
         if (actionIndex >= orderToPickup.size()) {
             return;
         }
-
         // Wait until the current path finishes
         if (follower.isBusy()) {
             return;
@@ -245,10 +267,13 @@ public class AutoFar extends LinearOpMode {
         if(waiting){
             return;
         }
+//        AutoAction currentAction = AutoAction.MOVE_OFF_LINE;
         AutoAction currentAction = orderToPickup.get(actionIndex);
 
         switch (currentAction) {
-
+            case MOVE_OFF_LINE:
+                follower.followPath(moveOffLaunchLine);
+                break;
             case FIRST_SPIKE:
                 follower.followPath(pickUpSpike1);
                 break;
@@ -264,36 +289,26 @@ public class AutoFar extends LinearOpMode {
             case HUMAN_PLAYER:
                 follower.followPath(humanPlayerPickup);
                 break;
+            case GATE_NO_INTAKE:
+                if(isSecretTunnelAfterGate()){
+                    follower.followPath(moveToGateNoIntake);
+                }
+                if(!isSecretTunnelAfterGate()) {
+                    follower.followPath(gateNoIntake);
+                }
+                break;
+            case SECRET_TUNNEL:
+                if(isSecretTunnelAfterGate()) {
+                    Log.i("SECRET TUNNEL POSE: ", "AFTER GATE");
+                    follower.followPath(secretTunnelAfterGate);
+                }
+                if(!isSecretTunnelAfterGate()){
+                    Log.i("SECRET TUNNEL POSE: ", "NOT AFTER GATE");
+                    follower.followPath(secretTunnelAfterShot);
+                }
         }
             actionIndex++; // Advance to next queued action
     }
-
-//    public void addWaitToPath(ArrayList<PathChain> paths, double whenToPause, int numOfPaths) {
-//        Log.i("IN FUNCTION: ", "ADD WAIT TO PATH");
-//        Log.i("ADDING WAIT TO PATHS: ", paths.toString());
-//        if (pathIndex >= paths.size()) {
-//            Log.i("PATH INDEX GREATER THAN SIZE OF LIST: ", "EXITING");
-//            return;
-//        }
-//        ArrayList<PathChain> PathsWithWait = new ArrayList<>();
-//        for (PathChain path : paths) {
-//            int pathToAddIndex = 0;
-//            Log.i("GOT LENGTH OF PATH: ", path.toString());
-//            Log.i("GOT NUM OF PATHS: ", String.valueOf(numOfPaths));
-//            while (pathToAddIndex <= numOfPaths) {
-//                Log.i("ADDING PATHS TO INDEX: ", String.valueOf(pathToAddIndex));
-//                PathChain newPath = follower.pathBuilder()
-//                        .addPath(path.getPath(pathToAddIndex))
-//                        .addParametricCallback(whenToPause,
-//                                this::pauseAndWait)
-//                        .build();
-//                PathsWithWait.add(newPath);
-//                Log.i("ADDING NEW PATH TO LIST", "NEW PATH");
-//                pathToAddIndex += 1;
-//            }
-//        }
-//    }
-
     public PathChain buildPathChainWithWait(
             ArrayList<Path> paths,
             double headingRadians,
@@ -325,5 +340,42 @@ public class AutoFar extends LinearOpMode {
         waitTimer.reset();
         waiting = true;
         Log.i("EXITING FUNCTION: ", "PAUSE AND WAIT");
+    }
+    public void moveMoveOffLineToEnd(){
+        if(orderToPickup.contains(AutoAction.MOVE_OFF_LINE)) {
+            int index = orderToPickup.indexOf(AutoAction.MOVE_OFF_LINE);
+            orderToPickup.remove(index);
+            orderToPickup.add(orderToPickup.size(), AutoAction.MOVE_OFF_LINE);
+        }
+        else{
+        }
+    }
+    public boolean isSecretTunnelAfterGate(){
+        if(orderToPickup.contains(AutoAction.GATE_NO_INTAKE) && orderToPickup.contains(AutoAction.SECRET_TUNNEL)) {
+            int gateIndexNoIntake = orderToPickup.indexOf(AutoAction.GATE_NO_INTAKE);
+            int indexOfSecretTunnel = orderToPickup.indexOf(AutoAction.SECRET_TUNNEL);
+            Log.i("GATE INDEX NO INTAKE: ", String.valueOf(gateIndexNoIntake));
+            Log.i("SECRET TUNNEL INDEX: ", String.valueOf(indexOfSecretTunnel));
+            return indexOfSecretTunnel - 1 == gateIndexNoIntake;
+        }
+        return false;
+    }
+    public PathChain buildAPath(Path moveToPath, Path shootAtPath, double radHeading){
+        PathChain path1 = follower.pathBuilder()
+                .addPath(moveToPath)
+                .setConstantHeadingInterpolation(radHeading)
+                .addPath(shootAtPath)
+                .setConstantHeadingInterpolation(radHeading)
+                .build();
+        return path1;
+    }
+    public PathChain buildAPath(Path moveToPath, Path shootAtPath, double pickupHeading, double shootingHeading){
+        PathChain path1 = follower.pathBuilder()
+                .addPath(moveToPath)
+                .setLinearHeadingInterpolation(shootingHeading, pickupHeading)
+                .addPath(shootAtPath)
+                .setLinearHeadingInterpolation(pickupHeading, shootingHeading)
+                .build();
+        return path1;
     }
 }
