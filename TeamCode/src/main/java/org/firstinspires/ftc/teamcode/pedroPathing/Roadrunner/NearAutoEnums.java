@@ -57,6 +57,8 @@ public class NearAutoEnums extends LinearOpMode {
     private PathChain gateToShooting;
     private PathChain preloads;
 
+
+
     /* ---------------- OPMODE ---------------- */
     @Override
     public void runOpMode() throws InterruptedException {
@@ -110,7 +112,7 @@ public class NearAutoEnums extends LinearOpMode {
                 .build();
 
         pickUpSpike1 = follower.pathBuilder()
-                .addPath(new BezierCurve(PRELOADS, FIRST_SPIKE))
+                .addPath(new BezierLine(PRELOADS, FIRST_SPIKE))
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .addPath(new BezierLine(FIRST_SPIKE, SHOOTING_POSE))
                 .setConstantHeadingInterpolation(Math.toRadians(180))

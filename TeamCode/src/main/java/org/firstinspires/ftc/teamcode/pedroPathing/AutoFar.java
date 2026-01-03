@@ -41,7 +41,6 @@ public class AutoFar extends LinearOpMode {
     private int actionIndex = 0;
 
     private Follower follower;
-    private int pathIndex = 0;
     private final ElapsedTime waitTimer = new ElapsedTime();
 
     private double waitSeconds = 5.0;
@@ -73,23 +72,72 @@ public class AutoFar extends LinearOpMode {
     public ArrayList<Path> pathsToAddWait = new ArrayList<>();
     /* ---------------- OPMODE ---------------- */
 
+    public Path moveToSpike1Pickup = new Path(new BezierCurve(INIT_POSE, CONTROL_POINT_FIRST_SPIKE, FIRST_SPIKE));
+    public Path moveToShootSpike1 = new Path(new BezierLine(FIRST_SPIKE, SHOOTING_POSE));
+    public Path moveToSpike2Pickup = new Path(new BezierCurve(SHOOTING_POSE, CONTROL_POINT_SECOND_SPIKE, SECOND_SPIKE));
+    public Path moveToShootSpike2 = new Path(new BezierLine(SECOND_SPIKE, SHOOTING_POSE));
+    public Path moveToGate = new Path(new BezierLine(SHOOTING_POSE, GATE_PICKUP));
+    public Path moveToShootGate = new Path(new BezierLine(GATE_PICKUP, SHOOTING_AFTER_GATE));
+    public Path preHumanPlayer = new Path(new BezierLine(SHOOTING_AFTER_GATE, PRE_HUMAN_PLAYER));
+    public Path moveToHumanPlayer = new Path(new BezierLine(PRE_HUMAN_PLAYER, HUMAN_PLAYER_PICKUP));
+    public Path moveToShootHumanPlayer = new Path(new BezierLine(HUMAN_PLAYER_PICKUP, SHOOTING_AFTER_GATE));
+
     @Override
     public void runOpMode() throws InterruptedException {
-        pathsToAddWait.add(
-                new Path(new BezierCurve(INIT_POSE, CONTROL_POINT_FIRST_SPIKE, FIRST_SPIKE))
-        );
-        pathsToAddWait.add(
-                new Path(new BezierLine(FIRST_SPIKE, SHOOTING_POSE))
-        );
+//        pathsToAddWait.add(
+//                new Path(new BezierCurve(INIT_POSE, CONTROL_POINT_FIRST_SPIKE, FIRST_SPIKE))
+//        );
+//        pathsToAddWait.add(
+//                new Path(new BezierLine(FIRST_SPIKE, SHOOTING_POSE))
+//        );
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(INIT_POSE);
 
         buildPaths();
-        pickUpSpike1 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 0.9);
+//        pickUpSpike1 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 0.9);
         /* -------- INIT BUTTON SELECTION -------- */
 
         while (opModeInInit()) {
+            if(gamepad1.dpadUpWasReleased()) {
+                if (!orderToPickup.isEmpty()) {
+                    //wait logic
+                    AutoAction lastAction = orderToPickup.get(orderToPickup.size() - 1); // get the last element of the order to pickup
+                    if (lastAction == AutoAction.FIRST_SPIKE) {
+                        telemetry.addData("ADDING WAITS TO: ", "FIRST SPIKE");
+                        Log.i("WAITING: ", "FIRST SPIKE");
+                        pathsToAddWait.add(moveToSpike1Pickup);
+                        pathsToAddWait.add(moveToShootSpike1);
+                        pickUpSpike1 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 0.9);
+                        pathsToAddWait.clear();
+                    }
+                    if (lastAction == AutoAction.SECOND_SPIKE) {
+                        telemetry.addData("ADDING WAITS TO: ", "SECOND SPIKE");
+                        Log.i("WAITING: ", "SECOND SPIKE");
+                        pathsToAddWait.add(moveToSpike2Pickup);
+                        pathsToAddWait.add(moveToShootSpike2);
+                        pickUpSpike2 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 0.9);
+                        pathsToAddWait.clear();
+                    }
+                    if (lastAction == AutoAction.GATE_PICKUP) {
+                        telemetry.addData("ADDING WAITS TO: ", "GATE PICKUP");
+                        Log.i("WAITING: ", "GATE PICKUP");
+                        pathsToAddWait.add(moveToGate);
+                        pathsToAddWait.add(moveToShootGate);
+                        gatePickup = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 0.9);
+                        pathsToAddWait.clear();
+                    }
+                    if (lastAction == AutoAction.HUMAN_PLAYER) {
+                        telemetry.addData("ADDING WAITS TO: ", "HUMAN PLAYER");
+                        Log.i("WAITING: ", "HUMAN PLAYER");
+                        pathsToAddWait.add(preHumanPlayer);
+                        pathsToAddWait.add(moveToHumanPlayer);
+                        pathsToAddWait.add(moveToShootHumanPlayer);
+                        humanPlayerPickup = buildPathChainWithWait(pathsToAddWait, Math.toRadians(270), 0.9);
+                        pathsToAddWait.clear();
+                    }
 
+                }
+            }
             if (gamepad1.aWasReleased()) {
                 orderToPickup.add(AutoAction.FIRST_SPIKE);
             }
@@ -126,9 +174,10 @@ public class AutoFar extends LinearOpMode {
 
         while (opModeIsActive()) {
 
-            if (waiting && waitTimer.seconds() >= 5) {
+            if (waiting && waitTimer.seconds() >= waitSeconds) {
                 follower.resumePathFollowing();
                 waiting = false;
+                follower.breakFollowing();
             }
             follower.update();
             runPaths();
@@ -143,29 +192,27 @@ public class AutoFar extends LinearOpMode {
 
     private void buildPaths() {
 
-//        pickUpSpike1 = follower.pathBuilder()
-//                .addPath(new BezierCurve(INIT_POSE, CONTROL_POINT_FIRST_SPIKE, FIRST_SPIKE))
-//                .setConstantHeadingInterpolation(Math.toRadians(180))
-//                .addPath(new BezierLine(FIRST_SPIKE, SHOOTING_POSE))
-//                .setConstantHeadingInterpolation(Math.toRadians(180))
-//                .addPath(new BezierCurve(SHOOTING_POSE, CONTROL_POINT_SECOND_SPIKE, SECOND_SPIKE))
-//                .setConstantHeadingInterpolation(Math.toRadians(180))
-//                .build();
+        pickUpSpike1 = follower.pathBuilder()
+                .addPath(moveToSpike1Pickup)
+                .setConstantHeadingInterpolation(Math.toRadians(180))
+                .addPath(moveToShootSpike1)
+                .setConstantHeadingInterpolation(Math.toRadians(180))
+                .build();
 
         pickUpSpike2 = follower.pathBuilder()
-                .addPath(new BezierCurve(SHOOTING_POSE, CONTROL_POINT_SECOND_SPIKE, SECOND_SPIKE))
+                .addPath(moveToSpike2Pickup)
                 .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(new BezierLine(SECOND_SPIKE, SHOOTING_POSE))
+                .addPath(moveToShootSpike2)
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .build();
 
         gatePickup = follower.pathBuilder()
-                .addPath(new BezierLine(SHOOTING_POSE, GATE_PICKUP))
+                .addPath(moveToGate)
                 .setLinearHeadingInterpolation(
                         SHOOTING_POSE.getHeading(),
                         GATE_PICKUP.getHeading()
                 )
-                .addPath(new BezierLine(GATE_PICKUP, SHOOTING_AFTER_GATE))
+                .addPath(moveToShootGate)
                 .setLinearHeadingInterpolation(
                         GATE_PICKUP.getHeading(),
                         SHOOTING_AFTER_GATE.getHeading()
@@ -173,11 +220,11 @@ public class AutoFar extends LinearOpMode {
                 .build();
 
         humanPlayerPickup = follower.pathBuilder()
-                .addPath(new BezierLine(SHOOTING_AFTER_GATE, PRE_HUMAN_PLAYER))
+                .addPath(preHumanPlayer)
                 .setConstantHeadingInterpolation(Math.toRadians(270))
-                .addPath(new BezierLine(PRE_HUMAN_PLAYER, HUMAN_PLAYER_PICKUP))
+                .addPath(moveToHumanPlayer)
                 .setConstantHeadingInterpolation(Math.toRadians(270))
-                .addPath(new BezierLine(HUMAN_PLAYER_PICKUP, SHOOTING_AFTER_GATE))
+                .addPath(moveToShootHumanPlayer)
                 .setConstantHeadingInterpolation(Math.toRadians(270))
                 .build();
     }
@@ -195,13 +242,8 @@ public class AutoFar extends LinearOpMode {
         if (follower.isBusy()) {
             return;
         }
-        if (waiting) {
+        if(waiting){
             return;
-        }
-        if (waiting && waitTimer.seconds() >= waitSeconds) {
-            follower.resumePathFollowing();
-            follower.breakFollowing();   // 🔑 THIS LINE
-            waiting = false;
         }
         AutoAction currentAction = orderToPickup.get(actionIndex);
 
@@ -223,8 +265,7 @@ public class AutoFar extends LinearOpMode {
                 follower.followPath(humanPlayerPickup);
                 break;
         }
-
-        actionIndex++; // Advance to next queued action
+            actionIndex++; // Advance to next queued action
     }
 
 //    public void addWaitToPath(ArrayList<PathChain> paths, double whenToPause, int numOfPaths) {
