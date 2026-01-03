@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import com.acmerobotics.roadrunner.SleepAction;
+import com.acmerobotics.roadrunner.ftc.Actions;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
@@ -8,7 +10,10 @@ import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
+import org.firstinspires.ftc.teamcode.pedroPathing.CallBacks.WaitCallback;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.Constants;
+import com.acmerobotics.roadrunner.Action.*;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import java.util.ArrayList;
 
@@ -32,7 +37,6 @@ public class AutoFar extends LinearOpMode {
     private Follower follower;
 
     /* ---------------- POSES ---------------- */
-
     public Pose INIT_POSE = new Pose(56, 8, Math.toRadians(180));
 
     public static Pose FIRST_SPIKE = new Pose(27, 35, Math.toRadians(180));
@@ -42,8 +46,8 @@ public class AutoFar extends LinearOpMode {
     public static Pose GATE_PICKUP = new Pose(14, 63, Math.toRadians(135));
     public static Pose SHOOTING_AFTER_GATE = new Pose(56, 18, Math.toRadians(270));
 
-    public static Pose PRE_HUMAN_PLAYER = new Pose(10, 30, Math.toRadians(270));
-    public static Pose HUMAN_PLAYER_PICKUP = new Pose(10, 5, Math.toRadians(270));
+    public static Pose PRE_HUMAN_PLAYER = new Pose(15, 30, Math.toRadians(270));
+    public static Pose HUMAN_PLAYER_PICKUP = new Pose(15, 20, Math.toRadians(270));
 
     private Pose CONTROL_POINT_FIRST_SPIKE = new Pose(56, 40);
     private Pose CONTROL_POINT_SECOND_SPIKE = new Pose(55, 63);
@@ -54,6 +58,9 @@ public class AutoFar extends LinearOpMode {
     private PathChain pickUpSpike2;
     private PathChain gatePickup;
     private PathChain humanPlayerPickup;
+
+    public ElapsedTime waitTimer = new ElapsedTime();
+    public Boolean waiting = false;
 
     /* ---------------- OPMODE ---------------- */
 
@@ -95,6 +102,10 @@ public class AutoFar extends LinearOpMode {
         /* -------- AUTON LOOP -------- */
 
         while (opModeIsActive()) {
+            if (waiting && waitTimer.seconds() >= 5) {
+                follower.resumePathFollowing();
+                waiting = false;
+            }
             follower.update();
             runPaths();
 
@@ -112,6 +123,13 @@ public class AutoFar extends LinearOpMode {
                 .addPath(new BezierCurve(INIT_POSE, CONTROL_POINT_FIRST_SPIKE, FIRST_SPIKE))
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .addPath(new BezierLine(FIRST_SPIKE, SHOOTING_POSE))
+                .setConstantHeadingInterpolation(Math.toRadians(180))
+                .addParametricCallback(0.9, () -> {
+                    follower.pausePathFollowing();
+                    waitTimer.reset();
+                    waiting = true;
+                })
+                .addPath(new BezierCurve(SHOOTING_POSE, CONTROL_POINT_SECOND_SPIKE, SECOND_SPIKE))
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .build();
 
@@ -158,7 +176,14 @@ public class AutoFar extends LinearOpMode {
         if (follower.isBusy()) {
             return;
         }
-
+        if(waiting) {
+            return;
+        }
+        if (waiting && waitTimer.seconds() >= 5) {
+            follower.resumePathFollowing();
+            follower.breakFollowing();   // 🔑 THIS LINE
+            waiting = false;
+        }
         AutoAction currentAction = orderToPickup.get(actionIndex);
 
         switch (currentAction) {
