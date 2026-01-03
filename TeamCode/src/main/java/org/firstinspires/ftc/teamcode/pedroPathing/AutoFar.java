@@ -1,11 +1,16 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import android.util.Log;
+
 import com.acmerobotics.roadrunner.SleepAction;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Curve;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.Path;
+import com.pedropathing.paths.PathBuilder;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -15,7 +20,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.Constants;
 import com.acmerobotics.roadrunner.Action.*;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 
 @Autonomous
 public class AutoFar extends LinearOpMode {
@@ -28,13 +35,17 @@ public class AutoFar extends LinearOpMode {
         GATE_PICKUP,
         HUMAN_PLAYER
     }
-
     /* ---------------- FIELDS ---------------- */
 
     private ArrayList<AutoAction> orderToPickup = new ArrayList<>();
     private int actionIndex = 0;
 
     private Follower follower;
+    private int pathIndex = 0;
+    private final ElapsedTime waitTimer = new ElapsedTime();
+
+    private double waitSeconds = 5.0;
+
 
     /* ---------------- POSES ---------------- */
     public Pose INIT_POSE = new Pose(56, 8, Math.toRadians(180));
@@ -58,20 +69,23 @@ public class AutoFar extends LinearOpMode {
     private PathChain pickUpSpike2;
     private PathChain gatePickup;
     private PathChain humanPlayerPickup;
-
-    public ElapsedTime waitTimer = new ElapsedTime();
     public Boolean waiting = false;
-
+    public ArrayList<Path> pathsToAddWait = new ArrayList<>();
     /* ---------------- OPMODE ---------------- */
 
     @Override
     public void runOpMode() throws InterruptedException {
-
+        pathsToAddWait.add(
+                new Path(new BezierCurve(INIT_POSE, CONTROL_POINT_FIRST_SPIKE, FIRST_SPIKE))
+        );
+        pathsToAddWait.add(
+                new Path(new BezierLine(FIRST_SPIKE, SHOOTING_POSE))
+        );
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(INIT_POSE);
 
         buildPaths();
-
+        pickUpSpike1 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 0.9);
         /* -------- INIT BUTTON SELECTION -------- */
 
         while (opModeInInit()) {
@@ -91,7 +105,16 @@ public class AutoFar extends LinearOpMode {
             if (gamepad1.xWasReleased()) {
                 orderToPickup.add(AutoAction.HUMAN_PLAYER);
             }
-
+            if (orderToPickup.contains(AutoAction.FIRST_SPIKE) && orderToPickup.contains(AutoAction.HUMAN_PLAYER)) {
+                if (orderToPickup.indexOf(AutoAction.FIRST_SPIKE) > orderToPickup.indexOf(AutoAction.HUMAN_PLAYER)) {
+                    telemetry.addData("WARNING: ", "INTAKING FIRST SPIKE BEFORE HUMAN PLAYER");
+                }
+            }
+            if (orderToPickup.contains(AutoAction.SECOND_SPIKE) && orderToPickup.contains(AutoAction.GATE_PICKUP)) {
+                if (orderToPickup.indexOf(AutoAction.SECOND_SPIKE) > orderToPickup.indexOf(AutoAction.GATE_PICKUP)) {
+                    telemetry.addData("WARNING: ", "INTAKING SECOND SPIKE BEFORE GATE");
+                }
+            }
             telemetry.addLine("CLICK ORDER QUEUE:");
             telemetry.addData("Queue", orderToPickup.toString());
             telemetry.update();
@@ -102,6 +125,7 @@ public class AutoFar extends LinearOpMode {
         /* -------- AUTON LOOP -------- */
 
         while (opModeIsActive()) {
+
             if (waiting && waitTimer.seconds() >= 5) {
                 follower.resumePathFollowing();
                 waiting = false;
@@ -119,19 +143,14 @@ public class AutoFar extends LinearOpMode {
 
     private void buildPaths() {
 
-        pickUpSpike1 = follower.pathBuilder()
-                .addPath(new BezierCurve(INIT_POSE, CONTROL_POINT_FIRST_SPIKE, FIRST_SPIKE))
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(new BezierLine(FIRST_SPIKE, SHOOTING_POSE))
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addParametricCallback(0.9, () -> {
-                    follower.pausePathFollowing();
-                    waitTimer.reset();
-                    waiting = true;
-                })
-                .addPath(new BezierCurve(SHOOTING_POSE, CONTROL_POINT_SECOND_SPIKE, SECOND_SPIKE))
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .build();
+//        pickUpSpike1 = follower.pathBuilder()
+//                .addPath(new BezierCurve(INIT_POSE, CONTROL_POINT_FIRST_SPIKE, FIRST_SPIKE))
+//                .setConstantHeadingInterpolation(Math.toRadians(180))
+//                .addPath(new BezierLine(FIRST_SPIKE, SHOOTING_POSE))
+//                .setConstantHeadingInterpolation(Math.toRadians(180))
+//                .addPath(new BezierCurve(SHOOTING_POSE, CONTROL_POINT_SECOND_SPIKE, SECOND_SPIKE))
+//                .setConstantHeadingInterpolation(Math.toRadians(180))
+//                .build();
 
         pickUpSpike2 = follower.pathBuilder()
                 .addPath(new BezierCurve(SHOOTING_POSE, CONTROL_POINT_SECOND_SPIKE, SECOND_SPIKE))
@@ -176,10 +195,10 @@ public class AutoFar extends LinearOpMode {
         if (follower.isBusy()) {
             return;
         }
-        if(waiting) {
+        if (waiting) {
             return;
         }
-        if (waiting && waitTimer.seconds() >= 5) {
+        if (waiting && waitTimer.seconds() >= waitSeconds) {
             follower.resumePathFollowing();
             follower.breakFollowing();   // 🔑 THIS LINE
             waiting = false;
@@ -206,5 +225,64 @@ public class AutoFar extends LinearOpMode {
         }
 
         actionIndex++; // Advance to next queued action
+    }
+
+//    public void addWaitToPath(ArrayList<PathChain> paths, double whenToPause, int numOfPaths) {
+//        Log.i("IN FUNCTION: ", "ADD WAIT TO PATH");
+//        Log.i("ADDING WAIT TO PATHS: ", paths.toString());
+//        if (pathIndex >= paths.size()) {
+//            Log.i("PATH INDEX GREATER THAN SIZE OF LIST: ", "EXITING");
+//            return;
+//        }
+//        ArrayList<PathChain> PathsWithWait = new ArrayList<>();
+//        for (PathChain path : paths) {
+//            int pathToAddIndex = 0;
+//            Log.i("GOT LENGTH OF PATH: ", path.toString());
+//            Log.i("GOT NUM OF PATHS: ", String.valueOf(numOfPaths));
+//            while (pathToAddIndex <= numOfPaths) {
+//                Log.i("ADDING PATHS TO INDEX: ", String.valueOf(pathToAddIndex));
+//                PathChain newPath = follower.pathBuilder()
+//                        .addPath(path.getPath(pathToAddIndex))
+//                        .addParametricCallback(whenToPause,
+//                                this::pauseAndWait)
+//                        .build();
+//                PathsWithWait.add(newPath);
+//                Log.i("ADDING NEW PATH TO LIST", "NEW PATH");
+//                pathToAddIndex += 1;
+//            }
+//        }
+//    }
+
+    public PathChain buildPathChainWithWait(
+            ArrayList<Path> paths,
+            double headingRadians,
+            double whenToPause
+    ) {
+        if (paths == null || paths.isEmpty()) {
+            throw new IllegalArgumentException("Path list is null or empty");
+        }
+
+        PathBuilder builder = follower.pathBuilder();
+
+        for (Path path : paths) {
+            builder.addPath(path)
+                    .setConstantHeadingInterpolation(headingRadians);
+        }
+
+        builder.addParametricCallback(
+                whenToPause,
+                this::pauseAndWait
+        );
+
+        return builder.build();
+    }
+
+
+    public void pauseAndWait() {
+        Log.i("IN FUNCTION: ", "PAUSE AND WAIT");
+        follower.pausePathFollowing();
+        waitTimer.reset();
+        waiting = true;
+        Log.i("EXITING FUNCTION: ", "PAUSE AND WAIT");
     }
 }
