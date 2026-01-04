@@ -1,9 +1,5 @@
-package org.firstinspires.ftc.teamcode.pedroPathing;
+package org.firstinspires.ftc.teamcode.pedroPathing.Near;
 
-import android.util.Log;
-
-import com.acmerobotics.roadrunner.SleepAction;
-import com.acmerobotics.roadrunner.ftc.Actions;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.*;
 import com.pedropathing.paths.*;
@@ -11,10 +7,12 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.CallBacks.WaitCallback;
+import static org.firstinspires.ftc.teamcode.pedroPathing.Near.BlueNearAutoConstants.*;
+
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.Constants;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * RealNearAuto
@@ -24,7 +22,7 @@ import java.util.ArrayList;
  * then executes them in order during AUTON.
  */
 @Autonomous
-public class RealNearAuto extends LinearOpMode {
+public class BlueNearAuto extends LinearOpMode {
 
     /* ------------------------------------------------------------
      * INIT SELECTION STATE
@@ -69,7 +67,7 @@ public class RealNearAuto extends LinearOpMode {
     private final ElapsedTime waitTimer = new ElapsedTime();
 
     // Length of wait when paused
-    private double waitSeconds = 5.0;
+    private double waitSeconds = 0.0; //5.0
 
     // True when robot is paused mid-path
     public Boolean waiting = false;
@@ -80,86 +78,6 @@ public class RealNearAuto extends LinearOpMode {
     /* ------------------------------------------------------------
      * POSES
      * ------------------------------------------------------------ */
-
-    public Pose INIT_POSE = new Pose(20, 125, Math.toRadians(144));
-
-    public static Pose FIRST_SPIKE  = new Pose(27, 84, Math.toRadians(180));
-    public static Pose SECOND_SPIKE = new Pose(27, 60, Math.toRadians(180));
-    public static Pose SHOOTING_POSE = new Pose(50, 84, Math.toRadians(180));
-
-    public static Pose GATE_PICKUP = new Pose(14, 63, Math.toRadians(45));
-    public static Pose GATE_PICKUP_NO_INTAKE = new Pose(10, 63, Math.toRadians(270));
-
-    public static Pose PRE_HUMAN_PLAYER = new Pose(15, 30, Math.toRadians(270));
-    public static Pose HUMAN_PLAYER_PICKUP = new Pose(15, 20, Math.toRadians(270));
-
-    public Pose PRE_SECRET_TUNNEL = new Pose(3, 60, Math.toRadians(270));
-    public Pose SECRET_TUNNEL_INTAKE = new Pose(3, 32, Math.toRadians(270));
-
-    public Pose MOVE_OFF_LINE = new Pose(55, 115);
-
-    /* Control points for curves */
-    private Pose CONTROL_POINT_FIRST_SPIKE = new Pose(47, 82);
-    private Pose CONTROL_POINT_SECOND_SPIKE = new Pose(55, 55);
-    public Pose SECRET_TUNNEL_CONTROL_AFTER_GATE = new Pose(11, 57);
-
-    /* ------------------------------------------------------------
-     * PATH OBJECTS
-     * ------------------------------------------------------------ */
-
-    // Individual reusable paths
-
-    public Path shootPreload =
-            new Path(new BezierLine(INIT_POSE, SHOOTING_POSE));
-
-    public Path moveToSpike1Pickup =
-            new Path(new BezierCurve(SHOOTING_POSE, CONTROL_POINT_FIRST_SPIKE, FIRST_SPIKE));
-
-    public Path moveToShootSpike1 =
-            new Path(new BezierLine(FIRST_SPIKE, SHOOTING_POSE));
-
-    public Path moveToSpike2Pickup =
-            new Path(new BezierCurve(SHOOTING_POSE, CONTROL_POINT_SECOND_SPIKE, SECOND_SPIKE));
-
-    public Path moveToShootSpike2 =
-            new Path(new BezierLine(SECOND_SPIKE, SHOOTING_POSE));
-
-    public Path moveToGate =
-            new Path(new BezierLine(SHOOTING_POSE, GATE_PICKUP));
-
-    public Path moveToShootGate =
-            new Path(new BezierLine(GATE_PICKUP, SHOOTING_POSE));
-
-    public Path preHumanPlayer =
-            new Path(new BezierLine(SHOOTING_POSE, PRE_HUMAN_PLAYER));
-
-    public Path moveToHumanPlayer =
-            new Path(new BezierLine(PRE_HUMAN_PLAYER, HUMAN_PLAYER_PICKUP));
-
-    public Path moveToShootHumanPlayer =
-            new Path(new BezierLine(HUMAN_PLAYER_PICKUP, SHOOTING_POSE));
-
-    public Path moveToGateNoIntake =
-            new Path(new BezierLine(SHOOTING_POSE, GATE_PICKUP_NO_INTAKE));
-
-    public Path moveToShootGateNoIntake =
-            new Path(new BezierLine(GATE_PICKUP_NO_INTAKE, SHOOTING_POSE));
-
-    public Path moveOffLaunchLine =
-            new Path(new BezierLine(SHOOTING_POSE, MOVE_OFF_LINE));
-
-    public Path preSecretTunnelAfterGate =
-            new Path(new BezierCurve(
-                    GATE_PICKUP_NO_INTAKE,
-                    SECRET_TUNNEL_CONTROL_AFTER_GATE,
-                    PRE_SECRET_TUNNEL
-            ));
-
-    public Path secretTunnelIntake =
-            new Path(new BezierLine(PRE_SECRET_TUNNEL, SECRET_TUNNEL_INTAKE));
-
-    public Path postSecretTunnel =
-            new Path(new BezierLine(SECRET_TUNNEL_INTAKE, SHOOTING_POSE));
 
     /* ------------------------------------------------------------
      * PATH CHAINS
@@ -174,6 +92,13 @@ public class RealNearAuto extends LinearOpMode {
     public PathChain gateNoShoot;
 
     public PathChain preloadShot;
+
+    // Optional custom wait times for specific actions
+    private final HashMap<AutoAction, Double> actionWaitTimes = new HashMap<>();
+
+    private AutoAction currentActionForWait = null;
+
+
 
     /* ------------------------------------------------------------
      * OPMODE
@@ -196,6 +121,7 @@ public class RealNearAuto extends LinearOpMode {
              * DPAD UP:
              * Adds a WAIT to the most recently added action
              */
+
             if (gamepad1.dpadUpWasReleased()) {
                 if (!orderToPickup.isEmpty()) {
 
@@ -208,7 +134,7 @@ public class RealNearAuto extends LinearOpMode {
                         gateNoIntake = buildPathChainWithWait(
                                 pathsToAddWait,
                                 Math.toRadians(270),
-                                0.9
+                                1
                         );
                         pathsToAddWait.clear();
                     }
@@ -219,7 +145,7 @@ public class RealNearAuto extends LinearOpMode {
                         pickUpSpike1 = buildPathChainWithWait(
                                 pathsToAddWait,
                                 Math.toRadians(180),
-                                0.9
+                                1
                         );
                         pathsToAddWait.clear();
                     }
@@ -230,7 +156,7 @@ public class RealNearAuto extends LinearOpMode {
                         pickUpSpike2 = buildPathChainWithWait(
                                 pathsToAddWait,
                                 Math.toRadians(180),
-                                0.9
+                                1
                         );
                         pathsToAddWait.clear();
                     }
@@ -241,7 +167,7 @@ public class RealNearAuto extends LinearOpMode {
                         gatePickup = buildPathChainWithWait(
                                 pathsToAddWait,
                                 Math.toRadians(180),
-                                0.9
+                                1
                         );
                         pathsToAddWait.clear();
                     }
@@ -253,14 +179,42 @@ public class RealNearAuto extends LinearOpMode {
                         humanPlayerPickup = buildPathChainWithWait(
                                 pathsToAddWait,
                                 Math.toRadians(270),
-                                0.9
+                                1
                         );
+
+
+
                         pathsToAddWait.clear();
                     }
                 }
             }
 
             /* ---------------- BUTTON MAPPING ---------------- */
+
+            // Right trigger: increase wait
+            if (gamepad1.rightBumperWasReleased()) {
+                if (!orderToPickup.isEmpty()) {
+                    AutoAction lastAction = orderToPickup.get(orderToPickup.size() - 1);
+                    double currentWait = actionWaitTimes.getOrDefault(lastAction, 0.0);
+                    currentWait += 1.0; // increment by 1 second
+                    actionWaitTimes.put(lastAction, currentWait);
+
+                    rebuildPathChainForAction(lastAction);
+                }
+            }
+
+// Left trigger: decrease wait
+            if (gamepad1.leftBumperWasReleased()) {
+                if (!orderToPickup.isEmpty()) {
+                    AutoAction lastAction = orderToPickup.get(orderToPickup.size() - 1);
+                    double currentWait = actionWaitTimes.getOrDefault(lastAction, 0.0);
+                    currentWait = Math.max(0.0, currentWait - 1.0);
+                    actionWaitTimes.put(lastAction, currentWait);
+
+                    rebuildPathChainForAction(lastAction);
+                }
+            }
+
 
             if (gamepad1.aWasReleased() && !isFirstSpikePressed) {
                 orderToPickup.add(AutoAction.FIRST_SPIKE);
@@ -297,6 +251,14 @@ public class RealNearAuto extends LinearOpMode {
 
             telemetry.addLine("CLICK ORDER QUEUE:");
             telemetry.addData("Queue", orderToPickup.toString());
+
+            if (!orderToPickup.isEmpty()) {
+                AutoAction lastAction = orderToPickup.get(orderToPickup.size() - 1);
+                double waitForLast = actionWaitTimes.getOrDefault(lastAction, 0.0);
+                telemetry.addData("Wait for last action", waitForLast + "s");
+            }
+
+            telemetry.update();
             telemetry.update();
         }
 
@@ -390,17 +352,24 @@ public class RealNearAuto extends LinearOpMode {
                 )
                 .build();
 
-        secretTunnel = follower.pathBuilder()
-                .addPath(preSecretTunnelAfterGate)
-                .setTangentHeadingInterpolation()
-                .addPath(secretTunnelIntake)
-                .setConstantHeadingInterpolation(Math.toRadians(270))
-                .addPath(postSecretTunnel)
-                .setLinearHeadingInterpolation(
-                        SECRET_TUNNEL_INTAKE.getHeading(),
-                        SHOOTING_POSE.getHeading()
-                )
-                .build();
+        secretTunnel =
+                follower.pathBuilder()
+                        .addPath(moveToSpike1Pickup)
+                        .setConstantHeadingInterpolation(Math.toRadians(0))
+                        .addPath(moveToShootSpike1)
+                        .setConstantHeadingInterpolation(Math.toRadians(0))
+                        .build();
+//                follower.pathBuilder()
+//                .addPath(preSecretTunnelAfterGate)
+//                .setTangentHeadingInterpolation()
+//                .addPath(secretTunnelIntake)
+//                .setConstantHeadingInterpolation(Math.toRadians(270))
+//                .addPath(postSecretTunnel)
+//                .setLinearHeadingInterpolation(
+//                        SECRET_TUNNEL_INTAKE.getHeading(),
+//                        SHOOTING_POSE.getHeading()
+//                )
+//                .build();
 
         preloadShot = follower.pathBuilder()
                 .addPath(shootPreload)
@@ -422,7 +391,9 @@ public class RealNearAuto extends LinearOpMode {
         if (follower.isBusy()) return;
         if (waiting) return;
 
+        // --- Track the action for wait callbacks ---
         AutoAction currentAction = orderToPickup.get(actionIndex);
+        currentActionForWait = currentAction;
 
         switch (currentAction) {
 
@@ -495,7 +466,39 @@ public class RealNearAuto extends LinearOpMode {
         follower.pausePathFollowing();
         waitTimer.reset();
         waiting = true;
+
+        // Only use the action that triggered this path
+        if (currentActionForWait != null && actionWaitTimes.containsKey(currentActionForWait)) {
+            waitSeconds = actionWaitTimes.get(currentActionForWait);
+        } else {
+            waitSeconds = 0.0;
+        }
     }
+
+//    public void pauseAndWait() {
+//        follower.pausePathFollowing();
+//        waitTimer.reset();
+//        waiting = true;
+//
+//        // Use custom wait for the action that triggered this path
+//        if (currentActionForWait != null && actionWaitTimes.containsKey(currentActionForWait)) {
+//            waitSeconds = actionWaitTimes.get(currentActionForWait);
+//        } else {
+//            waitSeconds = 0.0;
+//        }
+//
+//        // Use custom wait if defined for current action, otherwise 0
+//        AutoAction currentAction = actionIndex < orderToPickup.size()
+//                ? orderToPickup.get(actionIndex)
+//                : null;
+//
+//        if (currentAction != null && actionWaitTimes.containsKey(currentAction)) {
+//            waitSeconds = actionWaitTimes.get(currentAction);
+//        } else {
+//            waitSeconds = 0.0;  // default
+//        }
+//
+//    }
 
     /* ------------------------------------------------------------
      * QUEUE HELPERS
@@ -524,5 +527,46 @@ public class RealNearAuto extends LinearOpMode {
         orderToPickup.remove(AutoAction.SHOOTING_PRELOADS);
         orderToPickup.add(0, AutoAction.SHOOTING_PRELOADS);
     }
+
+    private void rebuildPathChainForAction(AutoAction action) {
+        switch(action) {
+            case FIRST_SPIKE:
+                pathsToAddWait.add(moveToSpike1Pickup);
+                pathsToAddWait.add(moveToShootSpike1);
+                pickUpSpike1 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 1);
+                pathsToAddWait.clear();
+                break;
+
+            case SECOND_SPIKE:
+                pathsToAddWait.add(moveToSpike2Pickup);
+                pathsToAddWait.add(moveToShootSpike2);
+                pickUpSpike2 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 1);
+                pathsToAddWait.clear();
+                break;
+
+            case GATE_PICKUP:
+                pathsToAddWait.add(moveToGate);
+                pathsToAddWait.add(moveToShootGate);
+                gatePickup = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 1);
+                pathsToAddWait.clear();
+                break;
+
+            case HUMAN_PLAYER:
+                pathsToAddWait.add(preHumanPlayer);
+                pathsToAddWait.add(moveToHumanPlayer);
+                pathsToAddWait.add(moveToShootHumanPlayer);
+                humanPlayerPickup = buildPathChainWithWait(pathsToAddWait, Math.toRadians(270), 1);
+                pathsToAddWait.clear();
+                break;
+
+            case GATE_NO_INTAKE:
+                pathsToAddWait.add(moveToGateNoIntake);
+                pathsToAddWait.add(moveToShootGateNoIntake);
+                gateNoIntake = buildPathChainWithWait(pathsToAddWait, Math.toRadians(270), 1);
+                pathsToAddWait.clear();
+                break;
+        }
+    }
+
 
 }
