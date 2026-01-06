@@ -9,8 +9,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import static org.firstinspires.ftc.teamcode.pedroPathing.Near.RedNearAutoConstants.*;
 
-import android.util.Log;
-
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.Constants;
 
 import java.util.ArrayList;
@@ -95,6 +93,9 @@ public class RedNearAuto extends LinearOpMode {
 
     public PathChain preloadShot;
 
+    public PathChain tunnelAfterGate;
+
+
     // Optional custom wait times for specific actions
     private final HashMap<AutoAction, Double> actionWaitTimes = new HashMap<>();
 
@@ -146,7 +147,7 @@ public class RedNearAuto extends LinearOpMode {
                         pathsToAddWait.add(moveToShootSpike1);
                         pickUpSpike1 = buildPathChainWithWait(
                                 pathsToAddWait,
-                                Math.toRadians(0),
+                                Math.toRadians(180),
                                 1
                         );
                         pathsToAddWait.clear();
@@ -157,7 +158,7 @@ public class RedNearAuto extends LinearOpMode {
                         pathsToAddWait.add(moveToShootSpike2);
                         pickUpSpike2 = buildPathChainWithWait(
                                 pathsToAddWait,
-                                Math.toRadians(0),
+                                Math.toRadians(180),
                                 1
                         );
                         pathsToAddWait.clear();
@@ -168,7 +169,7 @@ public class RedNearAuto extends LinearOpMode {
                         pathsToAddWait.add(moveToShootGate);
                         gatePickup = buildPathChainWithWait(
                                 pathsToAddWait,
-                                Math.toRadians(0),
+                                Math.toRadians(180),
                                 1
                         );
                         pathsToAddWait.clear();
@@ -354,17 +355,37 @@ public class RedNearAuto extends LinearOpMode {
                 )
                 .build();
 
-        secretTunnel = follower.pathBuilder()
-                .addPath(moveToSpike1Pickup)
-                .setConstantHeadingInterpolation(Math.toRadians(0))
-                .addPath(moveToShootSpike1)
-                .setConstantHeadingInterpolation(Math.toRadians(0))
-                .build();
+        secretTunnel =
+                follower.pathBuilder()
+                        .addPath(SecretTunnel)
+                        .setConstantHeadingInterpolation(Math.toRadians(0))
+                        .addPath(postSecretTunnel)
+                        .setConstantHeadingInterpolation(Math.toRadians(0))
+                        .build();
+//                follower.pathBuilder()
+//                .addPath(preSecretTunnelAfterGate)
+//                .setTangentHeadingInterpolation()
+//                .addPath(secretTunnelIntake)
+//                .setConstantHeadingInterpolation(Math.toRadians(270))
+//                .addPath(postSecretTunnel)
+//                .setLinearHeadingInterpolation(
+//                        SECRET_TUNNEL_INTAKE.getHeading(),
+//                        SHOOTING_POSE.getHeading()
+//                )
+//                .build();
 
         preloadShot = follower.pathBuilder()
                 .addPath(shootPreload)
-                .setLinearHeadingInterpolation(Math.toRadians(36), Math.toRadians(0))
+                .setLinearHeadingInterpolation(Math.toRadians(144), Math.toRadians(0))
                 .build();
+
+        tunnelAfterGate = follower.pathBuilder()
+                .addPath(SecretTunnelAfterGate)
+                .setConstantHeadingInterpolation(Math.toRadians(0))
+                .addPath(postSecretTunnel)
+                .setConstantHeadingInterpolation(Math.toRadians(0))
+                .build();
+
 
     }
 
@@ -388,38 +409,31 @@ public class RedNearAuto extends LinearOpMode {
         switch (currentAction) {
 
             case SHOOTING_PRELOADS:
-                Log.i("MOVING: ", "SHOOTING PRELOADS");
                 follower.followPath(preloadShot);
                 break;
 
 
             case MOVE_OFF_LINE:
-                Log.i("MOVING: ", "MOVE OFF LINE");
                 follower.followPath(moveOffLaunchLine);
                 break;
 
             case FIRST_SPIKE:
-                Log.i("MOVING: ", "FIRST SPIKE");
                 follower.followPath(pickUpSpike1);
                 break;
 
             case SECOND_SPIKE:
-                Log.i("MOVING: ", "SECOND SPIKE");
                 follower.followPath(pickUpSpike2);
                 break;
 
             case GATE_PICKUP:
-                Log.i("MOVING: ", "GATE PICKUP");
                 follower.followPath(gatePickup);
                 break;
 
             case HUMAN_PLAYER:
-                Log.i("MOVING: ", "HUMAN PLAYER");
                 follower.followPath(humanPlayerPickup);
                 break;
 
             case GATE_NO_INTAKE:
-                Log.i("MOVING: ", "GATE NO INTAKE");
                 if (isSecretTunnelAfterGate()) {
                     follower.followPath(moveToGateNoIntake);
                 } else {
@@ -428,9 +442,14 @@ public class RedNearAuto extends LinearOpMode {
                 break;
 
             case SECRET_TUNNEL:
-                Log.i("MOVING: ", "SECRET TUNNEL");
-                follower.followPath(secretTunnel);
+                if(!isSecretTunnelAfterGate()) {
+                    follower.followPath(secretTunnel);
+                }
+                if(isSecretTunnelAfterGate()){
+                    follower.followPath(tunnelAfterGate);
+                }
                 break;
+
         }
 
         // Advance to next action
@@ -531,21 +550,21 @@ public class RedNearAuto extends LinearOpMode {
             case FIRST_SPIKE:
                 pathsToAddWait.add(moveToSpike1Pickup);
                 pathsToAddWait.add(moveToShootSpike1);
-                pickUpSpike1 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(0), 1);
+                pickUpSpike1 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 1);
                 pathsToAddWait.clear();
                 break;
 
             case SECOND_SPIKE:
                 pathsToAddWait.add(moveToSpike2Pickup);
                 pathsToAddWait.add(moveToShootSpike2);
-                pickUpSpike2 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(0), 1);
+                pickUpSpike2 = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 1);
                 pathsToAddWait.clear();
                 break;
 
             case GATE_PICKUP:
                 pathsToAddWait.add(moveToGate);
                 pathsToAddWait.add(moveToShootGate);
-                gatePickup = buildPathChainWithWait(pathsToAddWait, Math.toRadians(0), 1);
+                gatePickup = buildPathChainWithWait(pathsToAddWait, Math.toRadians(180), 1);
                 pathsToAddWait.clear();
                 break;
 

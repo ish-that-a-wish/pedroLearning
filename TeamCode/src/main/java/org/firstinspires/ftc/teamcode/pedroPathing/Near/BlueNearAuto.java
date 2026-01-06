@@ -93,6 +93,9 @@ public class BlueNearAuto extends LinearOpMode {
 
     public PathChain preloadShot;
 
+    public PathChain tunnelAfterGate;
+
+
     // Optional custom wait times for specific actions
     private final HashMap<AutoAction, Double> actionWaitTimes = new HashMap<>();
 
@@ -354,10 +357,10 @@ public class BlueNearAuto extends LinearOpMode {
 
         secretTunnel =
                 follower.pathBuilder()
-                        .addPath(moveToSpike1Pickup)
-                        .setConstantHeadingInterpolation(Math.toRadians(0))
-                        .addPath(moveToShootSpike1)
-                        .setConstantHeadingInterpolation(Math.toRadians(0))
+                        .addPath(SecretTunnel)
+                        .setConstantHeadingInterpolation(Math.toRadians(180))
+                        .addPath(postSecretTunnel)
+                        .setConstantHeadingInterpolation(Math.toRadians(180))
                         .build();
 //                follower.pathBuilder()
 //                .addPath(preSecretTunnelAfterGate)
@@ -375,6 +378,14 @@ public class BlueNearAuto extends LinearOpMode {
                 .addPath(shootPreload)
                 .setLinearHeadingInterpolation(Math.toRadians(144), Math.toRadians(180))
                 .build();
+
+        tunnelAfterGate = follower.pathBuilder()
+                .addPath(SecretTunnelAfterGate)
+                .setConstantHeadingInterpolation(Math.toRadians(180))
+                .addPath(postSecretTunnel)
+                .setConstantHeadingInterpolation(Math.toRadians(180))
+                .build();
+
 
     }
 
@@ -431,8 +442,14 @@ public class BlueNearAuto extends LinearOpMode {
                 break;
 
             case SECRET_TUNNEL:
-                follower.followPath(secretTunnel);
+                if(!isSecretTunnelAfterGate()) {
+                    follower.followPath(secretTunnel);
+                }
+                if(isSecretTunnelAfterGate()){
+                    follower.followPath(tunnelAfterGate);
+                }
                 break;
+
         }
 
         // Advance to next action

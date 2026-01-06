@@ -30,6 +30,7 @@ public class RedNearAutoConstants {
     /* Control points for curves */
     private static Pose CONTROL_POINT_FIRST_SPIKE = new Pose(midLine + (25 * multiplier), 82);
     private static Pose CONTROL_POINT_SECOND_SPIKE = new Pose(midLine + (17*multiplier), 55);
+    private static Pose CONTROL_POINT_SECRET_TUNNEL = new Pose(60, 60);
     public static Pose SECRET_TUNNEL_CONTROL_AFTER_GATE = new Pose(midLine + (42*multiplier), 50);
 
     /* ------------------------------------------------------------
@@ -83,6 +84,9 @@ public class RedNearAutoConstants {
                     SECRET_TUNNEL_CONTROL_AFTER_GATE,
                     SECRET_TUNNEL_AFTER_GATE
             ));
+
+    public static Path SecretTunnel =
+            new Path(new BezierCurve(SHOOTING_POSE, CONTROL_POINT_SECRET_TUNNEL, SECRET_TUNNEL_AFTER_GATE));
 
     public static Path postSecretTunnel =
             new Path(new BezierLine(SECRET_TUNNEL_AFTER_GATE, SHOOTING_POSE));
