@@ -1,5 +1,15 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.FarShotHeading;
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.FarShotPose;
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.HumanPlayerIntakeHeading;
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.HumanPlayerIntakePower;
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.HumanPlayerPose;
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.MoveToFarShootingPower;
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.MoveToNearShootingPower;
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.NearShotHeading;
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.NearShotPose;
+
 import android.util.Log;
 
 import com.pedropathing.follower.Follower;
@@ -19,6 +29,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.Constants;
 
 @TeleOp(name = "TeleOpPedro")
 public class TeleOpHold extends LinearOpMode {
+    public boolean isFollowingNear = false;
+    public boolean isFollowingFar = false;
     private boolean followingPath = false;
     private DcMotorEx leftFront, rightFront, leftRear, rightRear;
     private double speed, strafe, turn;
@@ -41,49 +53,57 @@ public class TeleOpHold extends LinearOpMode {
             if (gamepad1.bWasReleased() && !follower.isBusy()) {
                 Log.i("MOVING TO SHOOTING POSE X: ", String.valueOf(BlueNearAutoConstants.SHOOTING_POSE.getX() + xAdd));
                 Log.i("MOVING TO SHOOTING POSE Y: ", String.valueOf(BlueNearAutoConstants.SHOOTING_POSE.getY() + yAdd));
-                follower.setMaxPower(1);
+                follower.setMaxPower(MoveToNearShootingPower);
                 follower.resumePathFollowing();
-                follower.followPath(new Path(
-                        new BezierLine(
-                                follower.getPose(),
-                                new Pose((24 + xAdd), (24 + yAdd))
-                        )
-                ));
+                Path shootingPath = new Path(new BezierLine(follower.getPose(), NearShotPose));
+                shootingPath.setConstantHeadingInterpolation(NearShotHeading);
+                follower.followPath(shootingPath);
+                isFollowingNear = true;
                 followingPath = true;
             }
 
+            if (gamepad1.yWasReleased() && !follower.isBusy()) {
+                Log.i("MOVING TO SHOOTING POSE X: ", String.valueOf(BlueFarConstants.SHOOTING_POSE.getX() + xAdd));
+                Log.i("MOVING TO SHOOTING POSE Y: ", String.valueOf(BlueFarConstants.SHOOTING_POSE.getY() + yAdd));
+                follower.setMaxPower(HumanPlayerIntakePower);
+                follower.resumePathFollowing();
+                Path shootingPath = new Path(new BezierLine(follower.getPose(), HumanPlayerPose));
+                shootingPath.setConstantHeadingInterpolation(HumanPlayerIntakeHeading);
+                follower.followPath(shootingPath);
+                followingPath = true;
+            }
             if (gamepad1.aWasReleased() && !follower.isBusy()) {
                 Log.i("MOVING TO SHOOTING POSE X: ", String.valueOf(BlueFarConstants.SHOOTING_POSE.getX() + xAdd));
                 Log.i("MOVING TO SHOOTING POSE Y: ", String.valueOf(BlueFarConstants.SHOOTING_POSE.getY() + yAdd));
-                follower.setMaxPower(1);
+                follower.setMaxPower(MoveToFarShootingPower);
                 follower.resumePathFollowing();
-                Path shootingPath = new Path(new BezierLine(
-                        follower.getPose(),
-                        new Pose((24 + xAdd), 24 + yAdd))
-                );
-                shootingPath.setConstantHeadingInterpolation(Math.toRadians(90));
+                Path shootingPath = new Path(new BezierLine(follower.getPose(), FarShotPose));
+                shootingPath.setConstantHeadingInterpolation(FarShotHeading);
                 follower.followPath(shootingPath);
+                isFollowingFar = true;
                 followingPath = true;
             }
             boolean poseChanged = moveThroughDpad();
 
-            if (poseChanged && followingPath) {
-                follower.setMaxPower(1);
+            if (poseChanged && followingPath && isFollowingNear) {
+                follower.setMaxPower(MoveToNearShootingPower);
                 follower.resumePathFollowing();
-                Path updatedPath = new Path(new BezierLine(
-                        follower.getPose(),
-                        new Pose(
-                                24 + xAdd,
-                                24 + yAdd
-                        )
-                ));
-                updatedPath.setConstantHeadingInterpolation(Math.toRadians(90));
+                Path updatedPath = new Path(new BezierLine(follower.getPose(), new Pose(NearShotPose.getX() + xAdd, NearShotPose.getY() + yAdd)));
+                updatedPath.setConstantHeadingInterpolation(NearShotHeading);
+                follower.followPath(updatedPath);
+            }
+            if (poseChanged && followingPath && isFollowingFar) {
+                follower.setMaxPower(MoveToFarShootingPower);
+                follower.resumePathFollowing();
+                Path updatedPath = new Path(new BezierLine(follower.getPose(), new Pose(FarShotPose.getX() + xAdd, FarShotPose.getY() + yAdd)));
+                updatedPath.setConstantHeadingInterpolation(FarShotHeading);
                 follower.followPath(updatedPath);
             }
 
-
             // CANCEL PATH (driver panic button)
             if (gamepad1.rightBumperWasReleased()) {
+                isFollowingNear = false;
+                isFollowingFar = false;
                 Log.i("FOLLOWING: ", "PAUSING PATH");
                 follower.pausePathFollowing();
                 follower.setMaxPower(0);
@@ -92,6 +112,8 @@ public class TeleOpHold extends LinearOpMode {
 
             // MANUAL DRIVE ONLY WHEN NOT FOLLOWING PATH
             if (!followingPath) {
+                isFollowingNear = false;
+                isFollowingFar = false;
                 Log.i("FOLLOWING: ", "CONTROLLER MOVEMENT");
                 speed  = -gamepad1.left_stick_y;
                 strafe =  gamepad1.left_stick_x;
