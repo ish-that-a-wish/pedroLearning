@@ -2,10 +2,13 @@ package org.firstinspires.ftc.teamcode.pedroPathing;
 
 import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.FarShotHeading;
 import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.FarShotPose;
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.GateHeading;
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.GatePose;
 import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.HumanPlayerIntakeHeading;
 import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.HumanPlayerIntakePower;
 import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.HumanPlayerPose;
 import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.MoveToFarShootingPower;
+import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.MoveToGatePower;
 import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.MoveToNearShootingPower;
 import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.NearShotHeading;
 import static org.firstinspires.ftc.teamcode.pedroPathing.TeleOpConstants.NearShotPose;
@@ -16,7 +19,6 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
-import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -29,99 +31,141 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.Constants;
 
 @TeleOp(name = "TeleOpPedro")
 public class TeleOpHold extends LinearOpMode {
+
+    /* -------------------- State Flags -------------------- */
     public boolean isFollowingNear = false;
-    public boolean isFollowingFar = false;
-    private boolean followingPath = false;
-    private DcMotorEx leftFront, rightFront, leftRear, rightRear;
-    private double speed, strafe, turn;
+    public boolean isFollowingFar  = false;
+    private boolean followingPath  = false;
+
+    /* -------------------- Drive Hardware -------------------- */
+    private DcMotorEx leftFront;
+    private DcMotorEx rightFront;
+    private DcMotorEx leftRear;
+    private DcMotorEx rightRear;
+
+    /* -------------------- Drive Inputs -------------------- */
+    private double speed;
+    private double strafe;
+    private double turn;
+
+    /* -------------------- Pedro Pathing -------------------- */
     private Follower follower;
+
+    /* -------------------- Pose Offset (D-Pad) -------------------- */
     private double xAdd = 0;
-    private  double yAdd = 0;
+    private double yAdd = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
+
         follower = Constants.createFollower(this.hardwareMap);
-        follower.setStartingPose(new Pose(24,24,Math.toRadians(90)));
+        follower.setStartingPose(new Pose(24, 72, Math.toRadians(90)));
+
         initialize();
 
         waitForStart();
 
         while (opModeIsActive()) {
+
             follower.update();
 
-            // SNAP TO TARGET (smooth joystick → path)
+            /* -------------------- BUTTON PATH TRIGGERS -------------------- */
+
             if (gamepad1.bWasReleased() && !follower.isBusy()) {
-                Log.i("MOVING TO SHOOTING POSE X: ", String.valueOf(BlueNearAutoConstants.SHOOTING_POSE.getX() + xAdd));
-                Log.i("MOVING TO SHOOTING POSE Y: ", String.valueOf(BlueNearAutoConstants.SHOOTING_POSE.getY() + yAdd));
-                follower.setMaxPower(MoveToNearShootingPower);
-                follower.resumePathFollowing();
-                Path shootingPath = new Path(new BezierLine(follower.getPose(), NearShotPose));
-                shootingPath.setConstantHeadingInterpolation(NearShotHeading);
-                follower.followPath(shootingPath);
+                Log.i("MOVING TO NEAR SHOOTING POSE X:", String.valueOf(NearShotPose.getX() + xAdd));
+                Log.i("MOVING TO NEAR SHOOTING POSE Y:", String.valueOf(NearShotPose.getY() + yAdd));
+
+                gamepadStuff(MoveToNearShootingPower, NearShotPose, NearShotHeading); // pose is only for testing
+
                 isFollowingNear = true;
-                followingPath = true;
+                followingPath   = true;
             }
 
             if (gamepad1.yWasReleased() && !follower.isBusy()) {
-                Log.i("MOVING TO SHOOTING POSE X: ", String.valueOf(BlueFarConstants.SHOOTING_POSE.getX() + xAdd));
-                Log.i("MOVING TO SHOOTING POSE Y: ", String.valueOf(BlueFarConstants.SHOOTING_POSE.getY() + yAdd));
-                follower.setMaxPower(HumanPlayerIntakePower);
-                follower.resumePathFollowing();
-                Path shootingPath = new Path(new BezierLine(follower.getPose(), HumanPlayerPose));
-                shootingPath.setConstantHeadingInterpolation(HumanPlayerIntakeHeading);
-                follower.followPath(shootingPath);
+                Log.i("MOVING TO HUMAN POSE X:", String.valueOf(HumanPlayerPose.getX() + xAdd));
+                Log.i("MOVING TO HUMAN POSE Y:", String.valueOf(HumanPlayerPose.getY() + yAdd));
+
+                gamepadStuff(HumanPlayerIntakePower, HumanPlayerPose, HumanPlayerIntakeHeading);
+
                 followingPath = true;
             }
+
             if (gamepad1.aWasReleased() && !follower.isBusy()) {
-                Log.i("MOVING TO SHOOTING POSE X: ", String.valueOf(BlueFarConstants.SHOOTING_POSE.getX() + xAdd));
-                Log.i("MOVING TO SHOOTING POSE Y: ", String.valueOf(BlueFarConstants.SHOOTING_POSE.getY() + yAdd));
-                follower.setMaxPower(MoveToFarShootingPower);
-                follower.resumePathFollowing();
-                Path shootingPath = new Path(new BezierLine(follower.getPose(), FarShotPose));
-                shootingPath.setConstantHeadingInterpolation(FarShotHeading);
-                follower.followPath(shootingPath);
+                Log.i("MOVING TO FAR SHOOTING POSE X:", String.valueOf(FarShotPose.getX() + xAdd));
+                Log.i("MOVING TO FAR SHOOTING POSE Y:", String.valueOf(FarShotPose.getY() + yAdd));
+
+                gamepadStuff(MoveToFarShootingPower, FarShotPose, FarShotHeading);
+
                 isFollowingFar = true;
+                followingPath  = true;
+            }
+
+            if (gamepad1.xWasReleased() && !follower.isBusy()) {
+                Log.i("MOVING TO GATE POSE X:", String.valueOf(GatePose.getX()));
+                Log.i("MOVING TO GATE POSE Y:", String.valueOf(GatePose.getY()));
+
+                gamepadStuff(MoveToGatePower, GatePose, GateHeading);
+
                 followingPath = true;
             }
+
+            /* -------------------- D-PAD OFFSET UPDATES -------------------- */
+
             boolean poseChanged = moveThroughDpad();
 
             if (poseChanged && followingPath && isFollowingNear) {
-                follower.setMaxPower(MoveToNearShootingPower);
-                follower.resumePathFollowing();
-                Path updatedPath = new Path(new BezierLine(follower.getPose(), new Pose(NearShotPose.getX() + xAdd, NearShotPose.getY() + yAdd)));
-                updatedPath.setConstantHeadingInterpolation(NearShotHeading);
-                follower.followPath(updatedPath);
-            }
-            if (poseChanged && followingPath && isFollowingFar) {
-                follower.setMaxPower(MoveToFarShootingPower);
-                follower.resumePathFollowing();
-                Path updatedPath = new Path(new BezierLine(follower.getPose(), new Pose(FarShotPose.getX() + xAdd, FarShotPose.getY() + yAdd)));
-                updatedPath.setConstantHeadingInterpolation(FarShotHeading);
-                follower.followPath(updatedPath);
+                gamepadStuff(
+                        MoveToNearShootingPower,
+                        new Pose(
+                                NearShotPose.getX() + xAdd,
+                                NearShotPose.getY() + yAdd
+                        ),
+                        NearShotHeading
+                );
             }
 
-            // CANCEL PATH (driver panic button)
+            if (poseChanged && followingPath && isFollowingFar) {
+                gamepadStuff(
+                        MoveToFarShootingPower,
+                        new Pose(
+                                FarShotPose.getX() + xAdd,
+                                FarShotPose.getY() + yAdd
+                        ),
+                        FarShotHeading
+                );
+            }
+
+            /* -------------------- CANCEL PATH -------------------- */
+
             if (gamepad1.rightBumperWasReleased()) {
+                Log.i("FOLLOWING:", "PAUSING PATH");
+
                 isFollowingNear = false;
-                isFollowingFar = false;
-                Log.i("FOLLOWING: ", "PAUSING PATH");
+                isFollowingFar  = false;
+                followingPath   = false;
+
                 follower.pausePathFollowing();
                 follower.setMaxPower(0);
-                followingPath = false;
             }
 
-            // MANUAL DRIVE ONLY WHEN NOT FOLLOWING PATH
+            /* -------------------- MANUAL DRIVE -------------------- */
+
             if (!followingPath) {
+                Log.i("FOLLOWING:", "CONTROLLER MOVEMENT");
+
                 isFollowingNear = false;
-                isFollowingFar = false;
-                Log.i("FOLLOWING: ", "CONTROLLER MOVEMENT");
+                isFollowingFar  = false;
+
                 speed  = -gamepad1.left_stick_y;
                 strafe =  gamepad1.left_stick_x;
                 turn   =  gamepad1.right_stick_x;
+
                 moveWheels();
             }
         }
     }
+
+    /* ==================== DRIVE METHODS ==================== */
 
     public void moveWheels() {
         double lf = speed + strafe + turn;
@@ -129,22 +173,21 @@ public class TeleOpHold extends LinearOpMode {
         double lr = speed - strafe + turn;
         double rr = speed + strafe - turn;
 
-        // Normalize so no motor power goes past 1
-        double max = Math.max(1.0,
-                Math.max(Math.abs(lf),
-                        Math.max(Math.abs(rf),
-                                Math.max(Math.abs(lr), Math.abs(rr)))));
+        double max = Math.max(
+                1.0,
+                Math.max(
+                        Math.abs(lf),
+                        Math.max(Math.abs(rf), Math.max(Math.abs(lr), Math.abs(rr)))
+                )
+        );
 
-        lf /= max;
-        rf /= max;
-        lr /= max;
-        rr /= max;
-
-        leftFront.setPower(lf);
-        rightFront.setPower(rf);
-        leftRear.setPower(lr);
-        rightRear.setPower(rr);
+        leftFront.setPower(lf / max);
+        rightFront.setPower(rf / max);
+        leftRear.setPower(lr / max);
+        rightRear.setPower(rr / max);
     }
+
+    /* ==================== INIT ==================== */
 
     public void initialize() {
         leftFront  = hardwareMap.get(DcMotorEx.class, "leftFront");
@@ -165,22 +208,28 @@ public class TeleOpHold extends LinearOpMode {
         rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
-    public boolean moveThroughDpad(){
+
+    /* ==================== D-PAD OFFSET ==================== */
+
+    public boolean moveThroughDpad() {
         boolean changed = false;
 
-        if(gamepad1.dpadUpWasReleased()){
+        if (gamepad1.dpadUpWasReleased()) {
             yAdd += 5;
             changed = true;
         }
-        if(gamepad1.dpadDownWasReleased()){
+
+        if (gamepad1.dpadDownWasReleased()) {
             yAdd -= 5;
             changed = true;
         }
-        if(gamepad1.dpadRightWasReleased()){
+
+        if (gamepad1.dpadRightWasReleased()) {
             xAdd += 5;
             changed = true;
         }
-        if(gamepad1.dpadLeftWasReleased()){
+
+        if (gamepad1.dpadLeftWasReleased()) {
             xAdd -= 5;
             changed = true;
         }
@@ -188,4 +237,15 @@ public class TeleOpHold extends LinearOpMode {
         return changed;
     }
 
+    /* ==================== PATH HELPER ==================== */
+
+    public void gamepadStuff(double speed, Pose targetPose, double headingRad) {
+        follower.setMaxPower(speed);
+        follower.resumePathFollowing();
+
+        Path path = new Path(new BezierLine(follower.getPose(), targetPose));
+        path.setConstantHeadingInterpolation(headingRad);
+
+        follower.followPath(path);
+    }
 }
