@@ -12,25 +12,25 @@ public class BlueNearAutoConstants {
      * POSES
      * ------------------------------------------------------------ */
 
-    public static Pose INIT_POSE = new Pose(midLine + (multiplier * 52), 125, Math.toRadians(90 - (multiplier * 54)));
-    public static Pose FIRST_SPIKE = new Pose(midLine + (45 * multiplier), 84, Math.toRadians(90 - (multiplier * 90)));
-    public static Pose SECOND_SPIKE = new Pose(midLine + (45 * multiplier), 60, Math.toRadians(90 - (multiplier * 90)));
-    public static Pose SHOOTING_POSE = new Pose(midLine + (22 * multiplier), 84, Math.toRadians(90 - (multiplier * 90)));
+    public static Pose INIT_POSE = new Pose(midLine + (multiplier * 51.5), 131, Math.toRadians(90 - (multiplier * 54)));
+    public static Pose FIRST_SPIKE = new Pose(midLine + (45 * multiplier), 93.5, Math.toRadians(90 - (multiplier * 90)));
+    public static Pose SECOND_SPIKE = new Pose(midLine + (45 * multiplier), 66, Math.toRadians(90 - (multiplier * 90)));
+    public static Pose SHOOTING_POSE = new Pose(midLine + (22 * multiplier), 93.5, Math.toRadians(90 - (multiplier * 90)));
 
-    public static Pose GATE_PICKUP = new Pose(midLine + (58 * multiplier), 63, Math.toRadians(90 - (multiplier * 45)));
-    public static Pose GATE_PICKUP_NO_INTAKE = new Pose(midLine + (62 * multiplier), 67, Math.toRadians(90 - (multiplier * 90)));
-
+    public static Pose GATE_PICKUP = new Pose(midLine + (60 * multiplier), 68, Math.toRadians(155));
+    public static Pose GATE_PICKUP_NO_INTAKE = new Pose(midLine + (62 * multiplier), 73, Math.toRadians(90 - (multiplier * 225)));
+//    public static Pose GATE_PICKUP_NO_INTAKE = new Pose(midLine + (60 * multiplier), 73, Math.toRadians(155));
     public static Pose PRE_HUMAN_PLAYER = new Pose(midLine + (57 * multiplier), 30, Math.toRadians(270));
     public static Pose HUMAN_PLAYER_PICKUP = new Pose(midLine + (57 * multiplier), 20, Math.toRadians(270));
 
-    public static Pose SECRET_TUNNEL_AFTER_GATE = new Pose(midLine + (62 * multiplier), 45, Math.toRadians(90 - (multiplier * 90)));
+    public static Pose SECRET_TUNNEL_AFTER_GATE = new Pose(midLine + (62 * multiplier), 57, Math.toRadians(90 - (multiplier * 90)));
 
     public static Pose MOVE_OFF_LINE = new Pose(midLine + (17 * multiplier), 115);
 
     /* Control points for curves */
     private static Pose CONTROL_POINT_FIRST_SPIKE = new Pose(midLine + (25 * multiplier), 82);
     private static Pose CONTROL_POINT_SECOND_SPIKE = new Pose(midLine + (17*multiplier), 55);
-    private static Pose CONTROL_POINT_SECRET_TUNNEL = new Pose(60, 60);
+    private static Pose CONTROL_POINT_SECRET_TUNNEL = new Pose(70, 60);
     public static Pose SECRET_TUNNEL_CONTROL_AFTER_GATE = new Pose(midLine + (42*multiplier), 50);
 
     /* ------------------------------------------------------------
@@ -90,5 +90,6 @@ public class BlueNearAutoConstants {
 
     public static Path postSecretTunnel =
             new Path(new BezierLine(SECRET_TUNNEL_AFTER_GATE, SHOOTING_POSE));
+
 
 }

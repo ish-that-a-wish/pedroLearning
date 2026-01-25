@@ -343,7 +343,7 @@ public class BlueNearAuto extends LinearOpMode {
                 .build();
 
         gateNoIntake = follower.pathBuilder()
-                .addPath(moveToGate)
+                .addPath(moveToGateNoIntake)
                 .setLinearHeadingInterpolation(
                         SHOOTING_POSE.getHeading(),
                         GATE_PICKUP_NO_INTAKE.getHeading()
