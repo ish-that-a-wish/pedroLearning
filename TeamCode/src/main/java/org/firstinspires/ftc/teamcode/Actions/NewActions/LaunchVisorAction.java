@@ -1,0 +1,71 @@
+package org.firstinspires.ftc.teamcode.Actions.NewActions;
+
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+
+import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roadrunner.Action;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.teamcode.common.RobotHardware;
+
+
+@Config
+public class LaunchVisorAction implements Action {
+    private RobotHardware robotHardware;
+    private double position;
+    private boolean initialized = false;
+    public static double LAUNCH_VISOR_RESTING = 0.01;
+    public static double LAUNCH_VISOR_MAX = 0.75;
+    public static double LAUNCH_VISOR_MID = (LAUNCH_VISOR_RESTING + LAUNCH_VISOR_MAX)/2;
+    public static double VISOR_ACTION_TIMEOUT_MILLIS = 800;
+    public static double VISOR_POSITION_TOLERANCE = 0.05;
+    private boolean waitForAction;
+    private ElapsedTime timer;
+    private ElapsedTime actionDuration;
+
+    public LaunchVisorAction(RobotHardware robotHardware, double position) {
+        this(robotHardware, position, true);
+    }
+
+    public LaunchVisorAction(RobotHardware robotHardware, double position, boolean waitForAction) {
+        this.robotHardware = robotHardware;
+        this.position = Math.max(LAUNCH_VISOR_RESTING, Math.min(position, LAUNCH_VISOR_MAX));
+        this.initialized = false;
+        this.waitForAction = waitForAction;
+    }
+
+    @Override
+    public boolean run (@NonNull TelemetryPacket packet) {
+        if (!initialized) {
+            timer = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
+            robotHardware.setLaunchVisorPosition(position);
+            initialized = true;
+            actionDuration = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
+        }
+
+        if (!waitForAction)
+            return false;
+
+        //run this loop every 20 ms.
+        if (timer.milliseconds() < 20) return true;
+        timer.reset();
+
+        double visorPos = robotHardware.getLaunchVisorPositionFromEncoder();
+//        Log.i("LAUNCH VISOR ACTION", "POSITION: " + visorPos + " Target: " + position);
+
+        boolean retVal = (Math.abs(position - visorPos) > VISOR_POSITION_TOLERANCE);
+
+        if (actionDuration.milliseconds() > VISOR_ACTION_TIMEOUT_MILLIS) {
+            Log.i("LAUNCH VISOR ACTION", "CALLING IT DONE. TIME EXCEEDED THRESHOLD OF: " + VISOR_ACTION_TIMEOUT_MILLIS);
+            retVal = false;
+        }
+
+        if (!retVal)
+            Log.i("LAUNCH VISOR ACTION", "Total time taken: " + actionDuration.milliseconds());
+
+        return retVal;
+    }
+}
