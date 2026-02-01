@@ -7,6 +7,9 @@ import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.NullAction;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.ftc.Actions;
+import com.arcrobotics.ftclib.command.Command;
+import com.arcrobotics.ftclib.command.CommandScheduler;
+import com.arcrobotics.ftclib.command.SubsystemBase;
 
 
 import org.firstinspires.ftc.teamcode.Actions.NewActions.SpindexAction;
@@ -18,7 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Config
-public class Spindex {
+public class SpindexSubsystem extends SubsystemBase {
 
     public static double SPINDEXER_INCREMENT = 0.1;
     public static double DELTA_BETWEEN_POSITIONS = 0.375;
@@ -39,19 +42,24 @@ public class Spindex {
     public int currentIndex;
     private RobotHardware robotHardware;
 
-    public Spindex(RobotHardware robotHardware){
+    public SpindexSubsystem(RobotHardware robotHardware){
         this.previousIndex = -1;
         this.currentIndex = -1; //to ensure the first move happens
         this.robotHardware = robotHardware;
     }
 
-    private Spindex() {}
+    private SpindexSubsystem() {}
 
     public void initializeWithPPG() {
         storedColors.get(0).ballColor = GameColors.PURPLE;
         storedColors.get(1).ballColor = GameColors.PURPLE;
         storedColors.get(2).ballColor = GameColors.GREEN;
     }
+
+    public void moveSpindex(){
+
+    }
+
 
     public void initializeWithUnknowns() {
         storedColors.get(0).ballColor = GameColors.UNKNOWN;
@@ -160,10 +168,9 @@ public class Spindex {
         return nextPurpleSlotIndex;
     }
 
-
-    public Action moveToNextEmptySlotAction() {
+    public Command moveToNextEmptySlotCommand(){
         int nextIndex = getNextEmptySlotIndex();
-        if (nextIndex < 0) return new NullAction();
+        if (nextIndex < 0) throw new ArrayIndexOutOfBoundsException("SPINDEX NEXT INDEX LESS THAN 0");
 
         previousIndex = currentIndex;
         currentIndex = nextIndex;
@@ -171,43 +178,43 @@ public class Spindex {
         Log.i("SPINDEXER", "Moving to Next Intake Slot");
         Log.i("SPINDEXER, ", "CURRENT POS: " + (robotHardware.getSpindexPosition()));
         Log.i("SPINDEXER", "NEXT POS: " + storedColors.get(currentIndex).intakePosition);
-        return new SpindexAction(robotHardware, storedColors.get(currentIndex).intakePosition);
+        return new SpindexCommand(robotHardware, storedColors.get(currentIndex).intakePosition);
     }
 
-    public Action moveToSlotZeroLaunchPosition() {
+    public Command moveToSlotZeroLaunchPosition() {
         previousIndex = currentIndex;
         currentIndex = 0;
 
-        return new SpindexAction(robotHardware, storedColors.get(currentIndex).launchPosition);
+        return new SpindexCommand(robotHardware, storedColors.get(currentIndex).launchPosition);
     }
 
-    public Action moveToNextFullSlotAction() {
+    public Command moveToNextFullSlotCommand() {
         int nextIndex = getNextFullSlotIndex();
-        if (nextIndex < 0 ) return new NullAction();
+        if (nextIndex < 0 ) throw new ArrayIndexOutOfBoundsException("NEXT SPINDEX LESS THAN 0");
 
         previousIndex = currentIndex;
         currentIndex = nextIndex;
 
-        return new SpindexAction(robotHardware, storedColors.get(currentIndex).launchPosition);
+        return new SpindexCommand(robotHardware, storedColors.get(currentIndex).launchPosition);
     }
 
-    public Action moveToNextGreenSlotAction() {
+    public Command moveToNextGreenSlotCommand() {
         int nextIndex = getNextGreenSlotIndex();
-        if (nextIndex < 0) return new NullAction();
+        if (nextIndex < 0) throw new ArrayIndexOutOfBoundsException("NEXT SPINDEX LESS THAN 0");
 
         previousIndex = currentIndex;
         currentIndex = nextIndex;
-        return new SpindexAction(robotHardware, storedColors.get(currentIndex).launchPosition);
+        return new SpindexCommand(robotHardware, storedColors.get(currentIndex).launchPosition);
     }
 
-    public Action moveToNextPurpleSlotAction() {
+    public Command moveToNextPurpleSlotCommand() {
         int nextIndex = getNextPurpleSlotIndex();
-        if (nextIndex < 0) return new NullAction();
+        if (nextIndex < 0) throw new ArrayIndexOutOfBoundsException("NEXT SPINDEX LESS THAN 0");
 
         previousIndex = currentIndex;
         currentIndex = nextIndex;
 
-        return new SpindexAction(robotHardware, storedColors.get(currentIndex).launchPosition);
+        return new SpindexCommand(robotHardware, storedColors.get(currentIndex).launchPosition);
     }
 
     public boolean isReadyForIntake() {
@@ -220,20 +227,18 @@ public class Spindex {
 //        Log.i("SPINDEXER", "isReadyForIntake: currentPos: " + currentPos);
 
         //this should be the intake position for current index
-        if (Math.abs(storedColors.get(currentIndex).intakePosition - currentPos) < SpindexAction.SPINDEX_POSITION_TOLERANCE && storedColors.get(currentIndex).ballColor == GameColors.NONE) {
+        if (Math.abs(storedColors.get(currentIndex).intakePosition - currentPos) < SpindexCommand.SPINDEX_POSITION_TOLERANCE && storedColors.get(currentIndex).ballColor == GameColors.NONE) {
             Log.i("SPINDEXER", "isReadyForIntake: we are or will be at an intake position: ");
             retVal = true;
         }
         else{
             Log.i("SPINDEXER", "Not ready for intake pos or not at intake pos");
-            if(!(Math.abs(storedColors.get(currentIndex).intakePosition - currentPos) < SpindexAction.SPINDEX_POSITION_TOLERANCE)){
+            if(!(Math.abs(storedColors.get(currentIndex).intakePosition - currentPos) < SpindexCommand.SPINDEX_POSITION_TOLERANCE)){
                 Log.i("SPINDEXER, ", "IS NOT AT INTAKE POS");
             }
             if(!(storedColors.get(currentIndex).ballColor == GameColors.NONE)){
                 Log.i("SPINDEXER", "NOT AT EMPTY SLOT");
-                Actions.runBlocking(
-                                this.moveToNextEmptySlotAction()
-                );
+                CommandScheduler.getInstance().schedule(this.moveToNextEmptySlotCommand());
             }
         }
 
@@ -282,4 +287,6 @@ public class Spindex {
 //        Log.i("SPINDEXER", "CLEAR BALL AT INDEX");
         storedColors.get(index).ballColor = GameColors.NONE;
     }
+
+
 }

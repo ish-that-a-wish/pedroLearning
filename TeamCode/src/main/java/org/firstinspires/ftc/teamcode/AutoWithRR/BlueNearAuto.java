@@ -21,7 +21,9 @@ import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.moveToSp
 import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.postSecretTunnel;
 import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.preHumanPlayer;
 import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.shootPreload;
+import org.firstinspires.ftc.teamcode.common.intakeCommand;
 
+import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathBuilder;
@@ -31,7 +33,10 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.Tests.Constants;
-import org.firstinspires.ftc.teamcode.subsystems.IntakeSystem;
+import org.firstinspires.ftc.teamcode.common.RobotHardware;
+import org.firstinspires.ftc.teamcode.common.spindexCommandReal;
+import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.intakeSubsystem;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,10 +48,11 @@ import java.util.HashMap;
  * Allows the driver to queue actions during INIT,
  * then executes them in order during AUTON.
  */
-@Autonomous
+@Autonomous(name="BlueNearWithActions")
 public class BlueNearAuto extends LinearOpMode {
-    public IntakeSystem intakeSystem;
+    public boolean init = true;
 
+    public RobotHardware robotHardware;
     /* ------------------------------------------------------------
      * INIT SELECTION STATE
      * ------------------------------------------------------------ */
@@ -56,6 +62,7 @@ public class BlueNearAuto extends LinearOpMode {
     public boolean isSecondSpikePressed = false;
     public boolean isGatePressed = false;
     public boolean isMovedOffLineAtEnd = false;
+    public boolean shotPreloads = false;
 
     /* ------------------------------------------------------------
      * ACTION ENUM
@@ -78,7 +85,7 @@ public class BlueNearAuto extends LinearOpMode {
      * ------------------------------------------------------------ */
 
     // Ordered list of actions chosen during init
-    private ArrayList<AutoAction> orderToPickup = new ArrayList<>();
+    private ArrayList<AutoAction> orderedListOfPathsWithActions = new ArrayList<>();
 
     // Index of the currently executing action
     private int actionIndex = 0;
@@ -124,6 +131,14 @@ public class BlueNearAuto extends LinearOpMode {
 
     private AutoAction currentActionForWait = null;
 
+    private intakeCommand intakeStartCommand;
+    private intakeCommand intakeStopCommand;
+
+    private SpindexSubsystem spindexSubsystem;
+
+    private intakeSubsystem intakeSubsystem;
+    private spindexCommandReal spindexCommandReal;
+
 
 
     /* ------------------------------------------------------------
@@ -133,10 +148,19 @@ public class BlueNearAuto extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
 
+
+        robotHardware = new RobotHardware(this.hardwareMap);
+
         // Initialize follower and starting pose
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(INIT_POSE);
+        intakeSubsystem = new intakeSubsystem(this.hardwareMap);
 
+        intakeStartCommand = new intakeCommand(intakeSubsystem, true);
+        intakeStopCommand = new intakeCommand(intakeSubsystem, false);
+
+        spindexSubsystem = new SpindexSubsystem(robotHardware);
+        spindexCommandReal = new spindexCommandReal(spindexSubsystem, robotHardware);
         // Build default paths
         buildPaths();
 
@@ -149,10 +173,10 @@ public class BlueNearAuto extends LinearOpMode {
              */
 
             if (gamepad1.dpadUpWasReleased()) {
-                if (!orderToPickup.isEmpty()) {
+                if (!orderedListOfPathsWithActions.isEmpty()) {
 
                     AutoAction lastAction =
-                            orderToPickup.get(orderToPickup.size() - 1);
+                            orderedListOfPathsWithActions.get(orderedListOfPathsWithActions.size() - 1);
 
                     if (lastAction == AutoAction.GATE_NO_INTAKE) {
                         pathsToAddWait.add(moveToGateNoIntake);
@@ -219,8 +243,8 @@ public class BlueNearAuto extends LinearOpMode {
 
             // Right trigger: increase wait
             if (gamepad1.rightBumperWasReleased()) {
-                if (!orderToPickup.isEmpty()) {
-                    AutoAction lastAction = orderToPickup.get(orderToPickup.size() - 1);
+                if (!orderedListOfPathsWithActions.isEmpty()) {
+                    AutoAction lastAction = orderedListOfPathsWithActions.get(orderedListOfPathsWithActions.size() - 1);
                     double currentWait = actionWaitTimes.getOrDefault(lastAction, 0.0);
                     currentWait += 1.0; // increment by 1 second
                     actionWaitTimes.put(lastAction, currentWait);
@@ -231,8 +255,8 @@ public class BlueNearAuto extends LinearOpMode {
 
 // Left trigger: decrease wait
             if (gamepad1.leftBumperWasReleased()) {
-                if (!orderToPickup.isEmpty()) {
-                    AutoAction lastAction = orderToPickup.get(orderToPickup.size() - 1);
+                if (!orderedListOfPathsWithActions.isEmpty()) {
+                    AutoAction lastAction = orderedListOfPathsWithActions.get(orderedListOfPathsWithActions.size() - 1);
                     double currentWait = actionWaitTimes.getOrDefault(lastAction, 0.0);
                     currentWait = Math.max(0.0, currentWait - 1.0);
                     actionWaitTimes.put(lastAction, currentWait);
@@ -243,43 +267,43 @@ public class BlueNearAuto extends LinearOpMode {
 
 
             if (gamepad1.aWasReleased() && !isFirstSpikePressed) {
-                orderToPickup.add(AutoAction.FIRST_SPIKE);
+                orderedListOfPathsWithActions.add(AutoAction.FIRST_SPIKE);
                 isFirstSpikePressed = true;
             }
 
             if (gamepad1.bWasReleased() && !isSecondSpikePressed) {
-                orderToPickup.add(AutoAction.SECOND_SPIKE);
+                orderedListOfPathsWithActions.add(AutoAction.SECOND_SPIKE);
                 isSecondSpikePressed = true;
             }
 
             if (gamepad1.yWasReleased() && !isGatePressed) {
-                orderToPickup.add(AutoAction.GATE_PICKUP);
+                orderedListOfPathsWithActions.add(AutoAction.GATE_PICKUP);
                 isGatePressed = true;
             }
 
             if (gamepad1.xWasReleased()) {
-                orderToPickup.add(AutoAction.HUMAN_PLAYER);
+                orderedListOfPathsWithActions.add(AutoAction.HUMAN_PLAYER);
             }
 
             if (gamepad1.dpadDownWasReleased()) {
-                orderToPickup.add(AutoAction.GATE_NO_INTAKE);
+                orderedListOfPathsWithActions.add(AutoAction.GATE_NO_INTAKE);
             }
 
             if (gamepad1.dpadLeftWasReleased()) {
-                orderToPickup.add(AutoAction.MOVE_OFF_LINE);
+                orderedListOfPathsWithActions.add(AutoAction.MOVE_OFF_LINE);
             }
 
             if (gamepad1.dpadRightWasReleased()) {
-                orderToPickup.add(AutoAction.SECRET_TUNNEL);
+                orderedListOfPathsWithActions.add(AutoAction.SECRET_TUNNEL);
             }
 
             /* ---------------- TELEMETRY ---------------- */
 
             telemetry.addLine("CLICK ORDER QUEUE:");
-            telemetry.addData("Queue", orderToPickup.toString());
+            telemetry.addData("Queue", orderedListOfPathsWithActions.toString());
 
-            if (!orderToPickup.isEmpty()) {
-                AutoAction lastAction = orderToPickup.get(orderToPickup.size() - 1);
+            if (!orderedListOfPathsWithActions.isEmpty()) {
+                AutoAction lastAction = orderedListOfPathsWithActions.get(orderedListOfPathsWithActions.size() - 1);
                 double waitForLast = actionWaitTimes.getOrDefault(lastAction, 0.0);
                 telemetry.addData("Wait for last action", waitForLast + "s");
             }
@@ -288,20 +312,23 @@ public class BlueNearAuto extends LinearOpMode {
             telemetry.update();
         }
 
-        if (!orderToPickup.contains(AutoAction.SHOOTING_PRELOADS)) {
-            orderToPickup.add(0, AutoAction.SHOOTING_PRELOADS);
+        if (!orderedListOfPathsWithActions.contains(AutoAction.SHOOTING_PRELOADS)) {
+            orderedListOfPathsWithActions.add(0, AutoAction.SHOOTING_PRELOADS);
         }
 
         waitForStart();
 
         /* ---------------- AUTON LOOP ---------------- */
         while (opModeIsActive()) {
+            CommandScheduler.getInstance().run();
 
             enforcePreloadFirst();
 
+
+//            Actions.runBlocking(intakeSystem.checkForBallIntakeAndGetAction());
             // Ensure MOVE_OFF_LINE runs last
             if (!isMovedOffLineAtEnd) {
-                moveMoveOffLineToEnd();
+                moveOffLineAtEnd();
                 isMovedOffLineAtEnd = true;
             }
 
@@ -310,11 +337,13 @@ public class BlueNearAuto extends LinearOpMode {
                 follower.resumePathFollowing();
                 waiting = false;
             }
-
+//            if(startIntake){
+//                intakeSystem.checkForBallIntakeAndGetAction();
+//            }
             follower.update();
             runPaths();
 
-            telemetry.addData("ACTION ORDER", orderToPickup);
+            telemetry.addData("ACTION ORDER", orderedListOfPathsWithActions);
             telemetry.addData("Current Action Index", actionIndex);
             telemetry.update();
         }
@@ -329,7 +358,10 @@ public class BlueNearAuto extends LinearOpMode {
         pickUpSpike1 = follower.pathBuilder()
                 .addPath(moveToSpike1Pickup)
                 .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addParametricCallback(0.1, ()->intakeSystem.getTurnOnAction(true))
+//                .addParametricCallback(0.1, this::startIntake)
+                .addParametricCallback(0.1, ()-> CommandScheduler.getInstance().schedule(intakeStartCommand))
+                .addParametricCallback(0.15, ()-> CommandScheduler.getInstance().schedule(spindexCommandReal))
+                //.addParametricCallback(0.1, ()-> CommandScheduler.getInstance().schedule(intakeCommand1))
                 .addPath(moveToShootSpike1)
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .build();
@@ -337,6 +369,8 @@ public class BlueNearAuto extends LinearOpMode {
         pickUpSpike2 = follower.pathBuilder()
                 .addPath(moveToSpike2Pickup)
                 .setConstantHeadingInterpolation(Math.toRadians(180))
+                .addParametricCallback(0.1, ()-> CommandScheduler.getInstance().schedule(intakeStartCommand))
+                .addParametricCallback(0.15, ()-> CommandScheduler.getInstance().schedule(spindexSubsystem.moveToNextEmptySlotCommand()))
                 .addPath(moveToShootSpike2)
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .build();
@@ -389,6 +423,8 @@ public class BlueNearAuto extends LinearOpMode {
 
         preloadShot = follower.pathBuilder()
                 .addPath(shootPreload)
+//                .addParametricCallback(0.1, ()->Actions.runBlocking(intakeSystem.getTurnOnAction()))
+//                .addParametricCallback(0.1, ()->spindex.initializeWithUnknowns())
                 .setLinearHeadingInterpolation(Math.toRadians(144), Math.toRadians(180))
                 .build();
 
@@ -409,19 +445,20 @@ public class BlueNearAuto extends LinearOpMode {
     private void runPaths() {
 
         // No more actions
-        if (actionIndex >= orderToPickup.size()) return;
+        if (actionIndex >= orderedListOfPathsWithActions.size()) return;
 
         // Wait until follower is free
         if (follower.isBusy()) return;
         if (waiting) return;
 
         // --- Track the action for wait callbacks ---
-        AutoAction currentAction = orderToPickup.get(actionIndex);
+        AutoAction currentAction = orderedListOfPathsWithActions.get(actionIndex);
         currentActionForWait = currentAction;
 
         switch (currentAction) {
 
             case SHOOTING_PRELOADS:
+                shotPreloads = true;
                 follower.followPath(preloadShot);
                 break;
 
@@ -431,7 +468,10 @@ public class BlueNearAuto extends LinearOpMode {
                 break;
 
             case FIRST_SPIKE:
-                follower.followPath(pickUpSpike1);
+                if(shotPreloads) {
+                    follower.followPath(pickUpSpike1);
+//                    Actions.runBlocking(intakeSystem.checkForBallIntakeAndGetAction());
+                }
                 break;
 
             case SECOND_SPIKE:
@@ -534,28 +574,28 @@ public class BlueNearAuto extends LinearOpMode {
      * QUEUE HELPERS
      * ------------------------------------------------------------ */
 
-    public void moveMoveOffLineToEnd() {
-        if (orderToPickup.contains(AutoAction.MOVE_OFF_LINE)) {
-            orderToPickup.remove(AutoAction.MOVE_OFF_LINE);
-            orderToPickup.add(AutoAction.MOVE_OFF_LINE);
+    public void moveOffLineAtEnd() {
+        if (orderedListOfPathsWithActions.contains(AutoAction.MOVE_OFF_LINE)) {
+            orderedListOfPathsWithActions.remove(AutoAction.MOVE_OFF_LINE);
+            orderedListOfPathsWithActions.add(AutoAction.MOVE_OFF_LINE);
         }
     }
 
     public boolean isSecretTunnelAfterGate() {
         int gateNoIntakeIndex =
-                orderToPickup.indexOf(AutoAction.GATE_NO_INTAKE);
+                orderedListOfPathsWithActions.indexOf(AutoAction.GATE_NO_INTAKE);
         int gateIntakeIndex =
-                orderToPickup.indexOf(AutoAction.GATE_PICKUP);
+                orderedListOfPathsWithActions.indexOf(AutoAction.GATE_PICKUP);
         int secretTunnelIndex =
-                orderToPickup.indexOf(AutoAction.SECRET_TUNNEL);
+                orderedListOfPathsWithActions.indexOf(AutoAction.SECRET_TUNNEL);
 
         return secretTunnelIndex - 1 == gateNoIntakeIndex
                 || secretTunnelIndex - 1 == gateIntakeIndex;
     }
 
     private void enforcePreloadFirst() {
-        orderToPickup.remove(AutoAction.SHOOTING_PRELOADS);
-        orderToPickup.add(0, AutoAction.SHOOTING_PRELOADS);
+        orderedListOfPathsWithActions.remove(AutoAction.SHOOTING_PRELOADS);
+        orderedListOfPathsWithActions.add(0, AutoAction.SHOOTING_PRELOADS);
     }
 
     private void rebuildPathChainForAction(AutoAction action) {
@@ -597,6 +637,8 @@ public class BlueNearAuto extends LinearOpMode {
                 break;
         }
     }
-
+//    public void startIntake(){
+//        startIntake = true;
+//    }
 
 }

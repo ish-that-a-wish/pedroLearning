@@ -42,6 +42,7 @@ public class IntakeSystem {
 
 
     public Action getTurnOnAction(boolean moveSpindexToEmptySlot) {
+        Log.i("INTAKE SYSTEM, ", "RUNNING INTAKE");
         isOn = true;
         return new ParallelAction(
                 new IntakeWheelsAction(robotHardware, true),
@@ -50,6 +51,7 @@ public class IntakeSystem {
     }
 
     public Action getTurnOnAction() {
+        Log.i("INTAKE SYSTEM, ", "RUNNING INTAKE, INITIALIZING");
         return getTurnOnAction(true);
     }
 
@@ -84,8 +86,9 @@ public class IntakeSystem {
 
     public Action checkForBallIntakeAndGetAction() {
         Action returnAction = new NullAction();
-
+        Log.i("INTAKE SYSTEM, ", "RUNNING SPINDEX AND INTAKE");
         if (spindex.isReadyForIntake() && isOn) {
+            Log.i("INTAKE SYSTEM, ", "SPINDEX IS READY FOR INTAKE AND ON");
             if(robotHardware.didBallDetectionBeamBreak()) {
 
                 spindex.updateBallColorAtCurrentIndex(GameColors.UNKNOWN);   //default to unknown - we will update color later
@@ -102,9 +105,13 @@ public class IntakeSystem {
                             getTurnOffAction()
                     );
                 } else {
+                    Log.i("INTAKE SYSTEM", "MOVING SPINDEX TO THE NEXT EMPTY SLOT");
                     returnAction = spindex.moveToNextEmptySlotAction();
                 }
             }
+        }
+        else{
+            Log.i("INTAKE SYSTEM, ", "SPINDEX IS NOT READY TO INTAKE");
         }
 
         return returnAction;
