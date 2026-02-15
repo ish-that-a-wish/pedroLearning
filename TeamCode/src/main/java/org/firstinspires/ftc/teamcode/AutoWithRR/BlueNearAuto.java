@@ -21,8 +21,15 @@ import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.moveToSp
 import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.postSecretTunnel;
 import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.preHumanPlayer;
 import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.shootPreload;
+
+import android.util.Log;
+
+import org.firstinspires.ftc.teamcode.common.SpindexAutoAdvanceCommand;
+import org.firstinspires.ftc.teamcode.common.SpindexIndexOnceCommand;
 import org.firstinspires.ftc.teamcode.common.intakeCommand;
 
+import com.acmerobotics.roadrunner.InstantAction;
+import com.acmerobotics.roadrunner.ftc.Actions;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.paths.Path;
@@ -35,6 +42,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.Tests.Constants;
 import org.firstinspires.ftc.teamcode.common.RobotHardware;
 import org.firstinspires.ftc.teamcode.common.spindexCommandReal;
+import org.firstinspires.ftc.teamcode.subsystems.Spindex;
 import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.intakeSubsystem;
 
@@ -139,6 +147,8 @@ public class BlueNearAuto extends LinearOpMode {
     private intakeSubsystem intakeSubsystem;
     private spindexCommandReal spindexCommandReal;
 
+    private Spindex rrSpindex;
+
 
 
     /* ------------------------------------------------------------
@@ -159,13 +169,21 @@ public class BlueNearAuto extends LinearOpMode {
         intakeStartCommand = new intakeCommand(intakeSubsystem, true);
         intakeStopCommand = new intakeCommand(intakeSubsystem, false);
 
-        spindexSubsystem = new SpindexSubsystem(robotHardware);
-        spindexCommandReal = new spindexCommandReal(spindexSubsystem, robotHardware);
+        spindexSubsystem = new SpindexSubsystem(robotHardware, this.follower);
+        spindexCommandReal = new spindexCommandReal(spindexSubsystem, robotHardware, follower);
+
+        rrSpindex = new Spindex(robotHardware);
+
         // Build default paths
         buildPaths();
 
+        CommandScheduler.getInstance().reset();
+
         /* ---------------- INIT LOOP ---------------- */
         while (opModeInInit()) {
+
+            spindexSubsystem.initializeWithEmpty(); // or whatever config
+            spindexSubsystem.setCurrentIndex(0);
 
             /*
              * DPAD UP:
@@ -353,14 +371,37 @@ public class BlueNearAuto extends LinearOpMode {
      * PATH BUILDING
      * ------------------------------------------------------------ */
 
+    private void spindexMotion(){
+        rrSpindex.initializeWithUnknowns();
+        while(!rrSpindex.isFull()){
+            while (!robotHardware.isSpindexBusy()){
+                if(robotHardware.didBallDetectionBeamBreak()){
+                    Log.i("RRSPINDEX", "RUNNING");
+                    Actions.runBlocking(
+                            rrSpindex.moveToNextEmptySlotAction()
+                    );
+                }
+            }
+        }
+
+    }
+
     private void buildPaths() {
 
         pickUpSpike1 = follower.pathBuilder()
                 .addPath(moveToSpike1Pickup)
                 .setConstantHeadingInterpolation(Math.toRadians(180))
 //                .addParametricCallback(0.1, this::startIntake)
-                .addParametricCallback(0.1, ()-> CommandScheduler.getInstance().schedule(intakeStartCommand))
-                .addParametricCallback(0.15, ()-> CommandScheduler.getInstance().schedule(spindexCommandReal))
+                //.addParametricCallback(0.1, ()-> CommandScheduler.getInstance().schedule(intakeStartCommand))
+//                .addParametricCallback(0.15, () ->
+//                        CommandScheduler.getInstance().schedule(
+//                                new SpindexAutoAdvanceCommand(spindexSubsystem, 10, robotHardware, rrSpindex)
+//                        )
+//                )
+
+                .addParametricCallback(0.15, this::spindexMotion)
+
+                //.addParametricCallback(0.15, ()-> CommandScheduler.getInstance().schedule(spindexCommandReal))
                 //.addParametricCallback(0.1, ()-> CommandScheduler.getInstance().schedule(intakeCommand1))
                 .addPath(moveToShootSpike1)
                 .setConstantHeadingInterpolation(Math.toRadians(180))
@@ -370,10 +411,12 @@ public class BlueNearAuto extends LinearOpMode {
                 .addPath(moveToSpike2Pickup)
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .addParametricCallback(0.1, ()-> CommandScheduler.getInstance().schedule(intakeStartCommand))
-                .addParametricCallback(0.15, ()-> CommandScheduler.getInstance().schedule(spindexSubsystem.moveToNextEmptySlotCommand()))
-                .addPath(moveToShootSpike2)
-                .setConstantHeadingInterpolation(Math.toRadians(180))
                 .build();
+//                .addParameck(0.15, ()-> CommandScheduler.getInstance().schedule(spindexCommandReal))
+//                .addPath(moveToShootSpike2)
+//                .setConstantHeadingInterpolation(Math.toRadians(180))
+//                .build();tricCallback(0.15, ()-> CommandScheduler.getInstance().schedule(spindexSubsystem.moveToNextEmptySlotCommand()))
+
 
         gatePickup = follower.pathBuilder()
                 .addPath(moveToGate)
@@ -423,6 +466,11 @@ public class BlueNearAuto extends LinearOpMode {
 
         preloadShot = follower.pathBuilder()
                 .addPath(shootPreload)
+//                .addParametricCallback(0.01, () ->
+//                        CommandScheduler.getInstance().schedule(
+//                                new SpindexIndexOnceCommand(spindexSubsystem)
+//                        )
+//                )
 //                .addParametricCallback(0.1, ()->Actions.runBlocking(intakeSystem.getTurnOnAction()))
 //                .addParametricCallback(0.1, ()->spindex.initializeWithUnknowns())
                 .setLinearHeadingInterpolation(Math.toRadians(144), Math.toRadians(180))

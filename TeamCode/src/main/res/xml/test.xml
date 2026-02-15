@@ -16,6 +16,8 @@
 
         <DigitalDevice name="BallIntakeSensor" port="0" />
 
+        <AnalogInput name="KickerServoEncoder" port="1"/>
+
         <!--            <RevTouchSensor name="SpindexLimitSwitch" port="2" />-->
     </LynxModule>
     <LynxModule name="Control Hub" port="173">

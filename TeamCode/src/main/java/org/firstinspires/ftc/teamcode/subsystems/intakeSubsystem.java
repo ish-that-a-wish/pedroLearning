@@ -27,6 +27,6 @@ public class intakeSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         super.periodic();
-        Log.i("INTAKE", "Called");
+//        Log.i("INTAKE", "Called");
     }
 }

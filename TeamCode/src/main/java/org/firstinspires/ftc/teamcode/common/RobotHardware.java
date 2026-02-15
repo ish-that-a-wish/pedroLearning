@@ -49,6 +49,8 @@ public class RobotHardware {
     private Servo spindexServo;
     private AnalogInput spindexServoEncoder;
 
+    private AnalogInput launchKickEncoder;
+
     private Servo launchVisorServo;
     private AnalogInput visorServoEncoder;
     private Servo launchKickServo;
@@ -143,6 +145,7 @@ public class RobotHardware {
 
         //kicker
         launchKickServo = hardwareMap.get(Servo.class, "LaunchKickServo");
+        launchKickEncoder = hardwareMap.get(AnalogInput.class, "KickerServoEncoder");
 
         //lift linear servos
         leftLiftServo = hardwareMap.get(Servo.class, "LeftLiftServo");
@@ -303,6 +306,20 @@ public class RobotHardware {
         double position = 1 - (voltage / 3.3);  //position via encoder seems to be flipped
 
 //        Log.i("=== ROBOTHARDWARE  ===", " getSpindexPositionFromEncoder: " + position);
+        return position;
+    }
+
+    public double getKickerPositionFromEncoder() {
+        double voltage = launchKickEncoder.getVoltage();
+        double position = 1 - (voltage / 3.3);  //position via encoder seems to be flipped
+
+//        Log.i("=== ROBOTHARDWARE  ===", " getSpindexPositionFromEncoder: " + position);
+        return position;
+    }
+
+    public double getKickerPosition(){
+        double position = launchKickServo.getPosition();
+
         return position;
     }
 

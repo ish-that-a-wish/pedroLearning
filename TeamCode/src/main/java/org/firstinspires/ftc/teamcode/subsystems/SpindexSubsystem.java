@@ -10,12 +10,16 @@ import com.acmerobotics.roadrunner.ftc.Actions;
 import com.arcrobotics.ftclib.command.Command;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.command.SubsystemBase;
+import com.pedropathing.follower.Follower;
+import com.qualcomm.robotcore.hardware.Servo;
 
 
+import org.firstinspires.ftc.teamcode.Actions.Commands.moveToEmptySpindexSlot;
 import org.firstinspires.ftc.teamcode.Actions.NewActions.SpindexAction;
 import org.firstinspires.ftc.teamcode.common.BallEntry;
 import org.firstinspires.ftc.teamcode.common.GameColors;
 import org.firstinspires.ftc.teamcode.common.RobotHardware;
+import org.firstinspires.ftc.teamcode.common.spindexCommandReal;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,6 +37,12 @@ public class SpindexSubsystem extends SubsystemBase {
     public static double LAUNCH_POS_3 = LAUNCH_POS_1 - DELTA_BETWEEN_POSITIONS; // 0.3825;
     public static double LAUNCH_POS_2 = LAUNCH_POS_3 - DELTA_BETWEEN_POSITIONS; //0.0075;
 
+    private Servo spindexServo;
+
+    boolean hasSeenBeamUnbroken = false;
+
+    spindexCommandReal spindexCommandReal;
+
     public List<BallEntry> storedColors = List.of(
             new BallEntry(0, INTAKE_POS_1, LAUNCH_POS_1, GameColors.NONE),
             new BallEntry(1, INTAKE_POS_2, LAUNCH_POS_2, GameColors.NONE),
@@ -42,23 +52,139 @@ public class SpindexSubsystem extends SubsystemBase {
     public int currentIndex;
     private RobotHardware robotHardware;
 
-    public SpindexSubsystem(RobotHardware robotHardware){
+
+    private boolean startupHandled = false;
+
+    public SpindexSubsystem(RobotHardware robotHardware, Follower follower){
         this.previousIndex = -1;
         this.currentIndex = -1; //to ensure the first move happens
         this.robotHardware = robotHardware;
+//        moveToEmptySlot = new moveToEmptySpindexSlot(this.robotHardware, follower);
     }
 
     private SpindexSubsystem() {}
 
+//    public void moveToNextEmptySlotCommand(){
+//        int nextIndex = getNextEmptySlotIndex();
+//        if (nextIndex < 0) throw new ArrayIndexOutOfBoundsException("SPINDEX NEXT INDEX LESS THAN 0");
+//
+//        previousIndex = currentIndex;
+//        currentIndex = nextIndex;
+//
+//        Log.i("SPINDEXER", "Moving to Next Intake Slot");
+//        Log.i("SPINDEXER, ", "CURRENT POS: " + (robotHardware.getSpindexPosition()));
+//        Log.i("SPINDEXER", "NEXT POS: " + storedColors.get(currentIndex).intakePosition);
+//
+//        if(nextIndex == 0){
+//            robotHardware.setSpindexPosition(INTAKE_POS_1);
+//
+//        } else if (nextIndex == 1) {
+//            robotHardware.setSpindexPosition(INTAKE_POS_2);
+//
+//        }else {
+//            robotHardware.setSpindexPosition(INTAKE_POS_3);
+//
+//        }
+//
+//
+//        //return new SpindexCommand(robotHardware, storedColors.get(currentIndex).intakePosition);
+//    }
+
+    private boolean lastBeamState = false;
+//    @Override
+//    public void periodic() {
+//        if(robotHardware.didBallDetectionBeamBreak()){
+//            Log.i("SPINDEX SUBSYS ", "BEAMBREAK BROKE");
+//            CommandScheduler.getInstance().schedule(moveToEmptySlot);
+//        }
+//        super.periodic();
+//    }
+    public boolean tryMoveToNextEmptySlot() {
+
+        if (!robotHardware.didBallDetectionBeamBreak()) {
+            return false; // no ball present
+        }
+
+        int nextIndex = getNextEmptySlotIndex();
+        if (nextIndex < 0) return false;
+
+        if (nextIndex == currentIndex) return false;
+
+        previousIndex = currentIndex;
+        currentIndex = nextIndex;
+
+        robotHardware.setSpindexPosition(
+                storedColors.get(currentIndex).intakePosition
+        );
+
+        Log.i("SPINDEXER", "Indexed to slot " + currentIndex);
+        Log.i("SPINDEXER", "Beam: " + robotHardware.didBallDetectionBeamBreak());
+        return true;
+    }
+
+
+    public void moveToNextEmptySlotCommand() {
+
+        Log.i("SPINDEXER", "moveToNextEmptySlotCommand called | Beam: " + robotHardware.didBallDetectionBeamBreak() +
+                " | currentIndex: " + currentIndex);
+
+        boolean beamBroken = robotHardware.didBallDetectionBeamBreak();
+
+        Log.i("SPINDEXER",
+                "Beam=" + beamBroken +
+                        " lastBeam=" + lastBeamState +
+                        " startupHandled=" + startupHandled);
+
+        // Handle startup ball
+        if (!startupHandled && beamBroken) {
+            startupHandled = true;
+        }
+        // Normal rising edge
+        else if (!(beamBroken && !lastBeamState)) {
+            lastBeamState = beamBroken;
+            return;
+        }
+
+        lastBeamState = beamBroken;
+
+        int nextIndex = getNextEmptySlotIndex();
+        if (nextIndex < 0) {
+            Log.w("SPINDEXER", "No empty slots available");
+            return;
+        }
+
+        if (nextIndex == currentIndex) return;
+
+        previousIndex = currentIndex;
+        currentIndex = nextIndex;
+
+        robotHardware.setSpindexPosition(
+                storedColors.get(currentIndex).intakePosition
+        );
+    }
     public void initializeWithPPG() {
         storedColors.get(0).ballColor = GameColors.PURPLE;
         storedColors.get(1).ballColor = GameColors.PURPLE;
         storedColors.get(2).ballColor = GameColors.GREEN;
     }
 
+    public void initializeWithEmpty() {
+        storedColors.get(0).ballColor = GameColors.NONE;
+        storedColors.get(1).ballColor = GameColors.NONE;
+        storedColors.get(2).ballColor = GameColors.NONE;
+    }
+
+    public void setCurrentIndex(int index) {
+        this.previousIndex = this.currentIndex;
+        this.currentIndex = index;
+    }
+
+
     public void moveSpindex(){
 
     }
+
+
 
 
     public void initializeWithUnknowns() {
@@ -67,28 +193,50 @@ public class SpindexSubsystem extends SubsystemBase {
         storedColors.get(2).ballColor = GameColors.UNKNOWN;
     }
 
-    private int getNextEmptySlotIndex() {
-        List<BallEntry> list = storedColors.stream()
-                .filter(entry -> entry.ballColor == GameColors.NONE)
-                .collect(Collectors.toList());
+//    private int getNextEmptySlotIndex() {
+//        List<BallEntry> list = storedColors.stream()
+//                .filter(entry -> entry.ballColor == GameColors.NONE)
+//                .collect(Collectors.toList());
+//
+//        int nextEmptySlotIndex = -1;
+//
+//        if (!list.isEmpty()) {
+//            double distance = 5000;
+//            double currPos = robotHardware.getSpindexPosition();
+//
+//            //this gets the closest empty slot to current position
+//            for (BallEntry entry: list) {
+//                if (Math.abs(entry.intakePosition - currPos) < distance) {
+//                    distance = Math.abs(entry.intakePosition - currPos);
+//                    nextEmptySlotIndex = entry.index;
+//                }
+//            }
+////            nextEmptySlotIndex = list.get(0).index;
+//        }
+//
+//        Log.i("SPINDEXER", "NEXT EMPTY SLOT INDEX: " + nextEmptySlotIndex);
+//        return nextEmptySlotIndex;
+//    }
 
+    private int getNextEmptySlotIndex() {
+
+        double currPos = robotHardware.getSpindexPosition();
+        double closestDistance = Double.MAX_VALUE;
         int nextEmptySlotIndex = -1;
 
-        if (!list.isEmpty()) {
-            double distance = 5000;
-            double currPos = robotHardware.getSpindexPosition();
+        for (BallEntry entry : storedColors) {
 
-            //this gets the closest empty slot to current position
-            for (BallEntry entry: list) {
-                if (Math.abs(entry.intakePosition - currPos) < distance) {
-                    distance = Math.abs(entry.intakePosition - currPos);
-                    nextEmptySlotIndex = entry.index;
-                }
+            if (entry.ballColor != GameColors.NONE) continue;
+
+            double distance = Math.abs(entry.intakePosition - currPos);
+
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                nextEmptySlotIndex = entry.index;
             }
-//            nextEmptySlotIndex = list.get(0).index;
         }
 
-//        Log.i("SPINDEXER", "NEXT EMPTY SLOT INDEX: " + nextEmptySlotIndex);
+        Log.i("SPINDEXER", "Next empty slot index: " + nextEmptySlotIndex);
         return nextEmptySlotIndex;
     }
 
@@ -168,19 +316,6 @@ public class SpindexSubsystem extends SubsystemBase {
         return nextPurpleSlotIndex;
     }
 
-    public Command moveToNextEmptySlotCommand(){
-        int nextIndex = getNextEmptySlotIndex();
-        if (nextIndex < 0) throw new ArrayIndexOutOfBoundsException("SPINDEX NEXT INDEX LESS THAN 0");
-
-        previousIndex = currentIndex;
-        currentIndex = nextIndex;
-
-        Log.i("SPINDEXER", "Moving to Next Intake Slot");
-        Log.i("SPINDEXER, ", "CURRENT POS: " + (robotHardware.getSpindexPosition()));
-        Log.i("SPINDEXER", "NEXT POS: " + storedColors.get(currentIndex).intakePosition);
-        return new SpindexCommand(robotHardware, storedColors.get(currentIndex).intakePosition);
-    }
-
     public Command moveToSlotZeroLaunchPosition() {
         previousIndex = currentIndex;
         currentIndex = 0;
@@ -238,7 +373,7 @@ public class SpindexSubsystem extends SubsystemBase {
             }
             if(!(storedColors.get(currentIndex).ballColor == GameColors.NONE)){
                 Log.i("SPINDEXER", "NOT AT EMPTY SLOT");
-                CommandScheduler.getInstance().schedule(this.moveToNextEmptySlotCommand());
+                CommandScheduler.getInstance().schedule(spindexCommandReal);
             }
         }
 
@@ -255,10 +390,11 @@ public class SpindexSubsystem extends SubsystemBase {
 
 
     public boolean isFull() {
+        Log.i("SPINDEX SUBSYSTEM: ", "IS FULL: " + storedColors.stream().noneMatch(ballEntry -> ballEntry.ballColor == GameColors.NONE));
         return storedColors.stream().noneMatch(ballEntry -> ballEntry.ballColor == GameColors.NONE);
     }
 
-    public int fullSlotCount() {
+    public int fullSlotCount() {initializeWithEmpty();
         return (int) storedColors.stream().filter(ballEntry -> ballEntry.ballColor != GameColors.NONE).count();
     }
 
@@ -287,6 +423,5 @@ public class SpindexSubsystem extends SubsystemBase {
 //        Log.i("SPINDEXER", "CLEAR BALL AT INDEX");
         storedColors.get(index).ballColor = GameColors.NONE;
     }
-
 
 }

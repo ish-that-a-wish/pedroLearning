@@ -53,15 +53,17 @@ public class LineTest extends OpMode {
         follower.update();
         draw();
 
-        if (!follower.isBusy()) {
-            if (forward) {
-                forward = false;
-                follower.followPath(backwards);
-            } else {
-                forward = true;
-                follower.followPath(forwards);
-            }
-        }
+        //follower.followPath(forwards);
+
+//        if (!follower.isBusy()) {
+//            if (forward) {
+//                forward = false;
+//                follower.followPath(backwards);
+//            } else {
+//                forward = true;
+//                follower.followPath(forwards);
+//            }
+//        }
 
         telemetryM.debug("Driving Forward?: " + forward);
         telemetryM.update(telemetry);
