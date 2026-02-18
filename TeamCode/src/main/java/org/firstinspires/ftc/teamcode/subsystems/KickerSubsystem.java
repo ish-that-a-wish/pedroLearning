@@ -22,8 +22,8 @@ public class KickerSubsystem extends SubsystemBase {
         this.robotHardware = robotHardware;
     }
 
-    public void moveKickerUp(){
-        if(Math.abs(robotHardware.getSpindexPosition() - LAUNCH_POS_1) < KICKING_TOLERANCE) {
+    public void moveKickerUp(double SpindexKickingPose){
+        if(Math.abs(robotHardware.getSpindexPosition() - SpindexKickingPose) < KICKING_TOLERANCE) {
             Log.i("Kicker ", "Kicking ball up");
             robotHardware.setLaunchKickPosition(LAUNCH_KICK_KICKING);
 //            robotHardware.setLaunchKickPosition(LAUNCH_KICK_RESTING);
@@ -32,8 +32,8 @@ public class KickerSubsystem extends SubsystemBase {
             Log.i("Kicker ", "Not kicking");
         }
     }
-    public void moveKickerDown(){
-        if(Math.abs(robotHardware.getSpindexPosition() - LAUNCH_POS_1) < KICKING_TOLERANCE) {
+    public void moveKickerDown(double SpindexKickingPose){
+        if(Math.abs(robotHardware.getSpindexPosition() - SpindexKickingPose) < KICKING_TOLERANCE) {
             Log.i("Kicker ", "Kicking ball down");
             robotHardware.setLaunchKickPosition(LAUNCH_KICK_RESTING);
 //            robotHardware.setLaunchKickPosition(LAUNCH_KICK_RESTING);

@@ -89,9 +89,15 @@ package org.firstinspires.ftc.teamcode.AutoWithRR;
 import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.moveToShootSpike1;
 import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.moveToSpike1Pickup;
 import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.shootPreload;
+import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.LAUNCH_POS_2;
+import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.SpindexPoses.INTAKE_POSE_1;
+import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.SpindexPoses.LAUNCH_POSE_1;
+import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.SpindexPoses.LAUNCH_POSE_2;
+import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.SpindexPoses.LAUNCH_POSE_3;
 
 import android.util.Log;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.command.InstantCommand;
 import com.arcrobotics.ftclib.command.ParallelCommandGroup;
@@ -112,8 +118,10 @@ import org.firstinspires.ftc.teamcode.subsystems.KickerSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal;
 import org.firstinspires.ftc.teamcode.subsystems.intakeSubsystem;
 
+@Config
 @Autonomous
 public class FirstSpike extends LinearOpMode {
+    public static int kickerDelay = 182; // wait time is 182
     private Follower follower;
     private RobotHardware robotHardware;
     private moveToEmptySpindexSlot emptySlot;
@@ -144,10 +152,8 @@ public class FirstSpike extends LinearOpMode {
                                 driveCommand,
                                 intakeCommand
                         ),
-                        new WaitCommand(1000),
-                        new InstantCommand(() -> kickerSubsystem.moveKickerUp()),
-                        new WaitCommand(1000),
-                        new InstantCommand(() -> kickerSubsystem.moveKickerDown())
+                        launch3Balls(),
+                        new InstantCommand(() -> spindex.moveToPose(INTAKE_POSE_1))
                 )
         );
 
@@ -162,5 +168,26 @@ public class FirstSpike extends LinearOpMode {
                 follower.pausePathFollowing();
             }
         }
+    }
+    private SequentialCommandGroup launch3Balls(){
+        // 1 3 2 is faster
+        return new SequentialCommandGroup(
+                //assume that at the end of moveToEmptySlot we move to launch 1
+//                new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_1)),
+                kickBall(spindex.convertSpindexPoseToDouble(LAUNCH_POSE_1)),
+                new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_3)),
+                kickBall(spindex.convertSpindexPoseToDouble(LAUNCH_POSE_3)),
+                new InstantCommand(() -> spindex.moveToPose(SpindexSubsystemReal.SpindexPoses.LAUNCH_POSE_2)),
+                kickBall(spindex.convertSpindexPoseToDouble(LAUNCH_POSE_2))
+        );
+    }
+    private SequentialCommandGroup kickBall(double SpindexKickingPose){
+        return new SequentialCommandGroup(
+                new WaitCommand(kickerDelay),
+                new InstantCommand(() -> kickerSubsystem.moveKickerUp(SpindexKickingPose)),
+                new WaitCommand(kickerDelay),
+                new InstantCommand(() -> kickerSubsystem.moveKickerDown(SpindexKickingPose)),
+                new WaitCommand(kickerDelay)
+        );
     }
 }

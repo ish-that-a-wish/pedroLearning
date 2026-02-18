@@ -90,4 +90,21 @@ public class SpindexSubsystemReal extends SubsystemBase {
 
         if(robotHardware.didBallDetectionBeamBreak() && spindexFree() && currentPose == SpindexPoses.INTAKE_POSE_3) moveToPose(SpindexPoses.LAUNCH_POSE_1);
     }
+    public double convertSpindexPoseToDouble(SpindexPoses pose){
+        switch (pose){
+            case INTAKE_POSE_1:
+                return INTAKE_POS_1;
+            case INTAKE_POSE_2:
+                return INTAKE_POS_2;
+            case INTAKE_POSE_3:
+                return INTAKE_POS_3;
+            case LAUNCH_POSE_1:
+                return LAUNCH_POS_1;
+            case LAUNCH_POSE_2:
+                return LAUNCH_POS_2;
+            case LAUNCH_POSE_3:
+                return LAUNCH_POS_3;
+        }
+        return robotHardware.getSpindexPositionFromEncoder(); // defualt to the current spindex pose
+    }
 }
