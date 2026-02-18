@@ -126,7 +126,7 @@ public class FirstSpike extends LinearOpMode {
 
     private intakeCommand intakeCommand;
     private SpindexSubsystemReal spindex;
-
+    private DriveTo driveCommand;
     public static boolean spindexFree;
 
 
@@ -136,7 +136,7 @@ public class FirstSpike extends LinearOpMode {
         follower.setStartingPose(new Pose(0,0, Math.toRadians(90))); // set the val to blue near init
         robotHardware = new RobotHardware(this.hardwareMap);
         spindex = new SpindexSubsystemReal(this.robotHardware);
-//        driveCommand = new DriveTo(new Pose(0,0, Math.toRadians(90)), new Pose(0,15, Math.toRadians(90)), this.follower, this.spindex);
+        driveCommand = new DriveTo(new Pose(0, 15, Math.toRadians(90)), follower, spindex);
         emptySlot = new moveToEmptySpindexSlot(robotHardware, follower);
         intakeSubsystem = new intakeSubsystem(this.hardwareMap);
         intakeCommand = new intakeCommand(intakeSubsystem, true);
@@ -144,9 +144,10 @@ public class FirstSpike extends LinearOpMode {
         CommandScheduler.getInstance().schedule(
                 new SequentialCommandGroup(
                         new ParallelDeadlineGroup(
-                                new DriveTo(new Pose(0, 15, Math.toRadians(90)), follower, spindex),
-                                intakeCommand,
-                                emptySlot
+                                emptySlot,
+                                driveCommand,
+                                intakeCommand
+
                         )//,
                         //moveSpindexerToShootArtifacts
                         //new DriveTo(new Pose(14, 0, Math.toRadians(90)), follower, spindex)
@@ -164,8 +165,14 @@ public class FirstSpike extends LinearOpMode {
 
         while(opModeIsActive()){
             CommandScheduler.getInstance().run();
-
-            follower.update();
+            if(!driveCommand.isFinished()) {
+                Log.i("First Spike: ", "Updating Follower");
+                follower.update();
+            }
+            if(driveCommand.isFinished()){
+                Log.i("First Spike: ", "Done updating");
+                follower.pausePathFollowing();
+            }
         }
     }
 }

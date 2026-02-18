@@ -15,6 +15,8 @@ import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal;
 
 @Config
 public class DriveTo extends CommandBase {
+    public static double xTol = 0.1;
+    public static double yTol = 0.1;
 //
 //    private Pose targetPose;
 //    private final Follower follower;
@@ -192,7 +194,8 @@ public class DriveTo extends CommandBase {
 //                Log.i("DriveTo ", "Still running");
 //                return false;
 //            }
-            return spindex.isFull();
+            Log.i("Is DriveTo Finished ", String.valueOf(follower.atPose(targetPose, 2, 2)));
+            return follower.atPose(targetPose, xTol, yTol);
         }
 
     @Override

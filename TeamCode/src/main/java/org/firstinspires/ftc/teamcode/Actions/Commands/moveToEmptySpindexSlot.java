@@ -278,9 +278,9 @@ public class moveToEmptySpindexSlot extends CommandBase {
         super.isFinished();
         if(currentIntakePose == spindexPoses.LAUNCH_POSE){
             Log.i("moveToEmptySpindexSlot", "FULL INDEX, ENDING COMMAND");
-            Log.i("moveToEmptySpindexSlot", "IsFull: " + isFull());
+//            Log.i("moveToEmptySpindexSlot", "IsFull: " + isFull());
             spindexFree = true;
-            return isFull();
+            return true; // return true if the current pose is launch pose
         }
         else{
             Log.i("moveToEmptySpindexSlot", "INDEX NOT FULL RUNNING COMMAND");
