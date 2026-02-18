@@ -151,7 +151,6 @@ public class DriveTo extends CommandBase {
         @Override
         public void initialize() {
             follower.resumePathFollowing(); // just in case following is paused
-            spindex.init();
             pathScheduled = false;
             jiggleForward = false;
             startJiggling = false;

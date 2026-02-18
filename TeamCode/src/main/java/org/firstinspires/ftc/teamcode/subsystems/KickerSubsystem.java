@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import static org.firstinspires.ftc.teamcode.Actions.Commands.moveToEmptySpindexSlot.LAUNCH_POS_1;
+
+import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.LAUNCH_POS_1;
 
 import android.util.Log;
 

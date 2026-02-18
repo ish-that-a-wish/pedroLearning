@@ -100,25 +100,15 @@ import com.arcrobotics.ftclib.command.SequentialCommandGroup;
 import com.arcrobotics.ftclib.command.WaitCommand;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.Actions.Commands.DriveTo;
-import org.firstinspires.ftc.teamcode.Actions.Commands.KickDownCommand;
-import org.firstinspires.ftc.teamcode.Actions.Commands.KickUpCommand;
 import org.firstinspires.ftc.teamcode.Actions.Commands.intakeCommand;
 import org.firstinspires.ftc.teamcode.Actions.Commands.moveToEmptySpindexSlot;
-//import org.firstinspires.ftc.teamcode.Actions.intakeBallsCallback;
-import org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants;
 import org.firstinspires.ftc.teamcode.Tests.Constants;
 import org.firstinspires.ftc.teamcode.common.RobotHardware;
-//import org.firstinspires.ftc.teamcode.subsystems.FTCLib.SpindexSubsystem;
-//import org.firstinspires.ftc.teamcode.subsystems.FTCLib.intakeSubsystem;
-import org.firstinspires.ftc.teamcode.subsystems.IntakeSystem;
 import org.firstinspires.ftc.teamcode.subsystems.KickerSubsystem;
-import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal;
 import org.firstinspires.ftc.teamcode.subsystems.intakeSubsystem;
 
@@ -132,7 +122,6 @@ public class FirstSpike extends LinearOpMode {
     private intakeCommand intakeCommand;
     private SpindexSubsystemReal spindex;
     private DriveTo driveCommand;
-    public static boolean spindexFree;
     private KickerSubsystem kickerSubsystem;
 
     @Override
@@ -142,7 +131,7 @@ public class FirstSpike extends LinearOpMode {
         robotHardware = new RobotHardware(this.hardwareMap);
         spindex = new SpindexSubsystemReal(this.robotHardware);
         driveCommand = new DriveTo(new Pose(0, 15, Math.toRadians(90)), follower, spindex);
-        emptySlot = new moveToEmptySpindexSlot(robotHardware, follower);
+        emptySlot = new moveToEmptySpindexSlot(spindex);
         intakeSubsystem = new intakeSubsystem(this.hardwareMap);
         intakeCommand = new intakeCommand(intakeSubsystem, true);
         kickerSubsystem = new KickerSubsystem(robotHardware);
@@ -159,31 +148,17 @@ public class FirstSpike extends LinearOpMode {
                         new InstantCommand(() -> kickerSubsystem.moveKickerUp()),
                         new WaitCommand(1000),
                         new InstantCommand(() -> kickerSubsystem.moveKickerDown())
-//                        new KickUpCommand(kickerSubsystem, this.robotHardware),
-//                        new KickDownCommand(kickerSubsystem, this.robotHardware)
-                        //,
-                        //moveSpindexerToShootArtifacts
-                        //new DriveTo(new Pose(14, 0, Math.toRadians(90)), follower, spindex)
                 )
         );
-//
-//        CommandScheduler.getInstance().schedule(
-//                new ParallelDeadlineGroup(
-//                        driveCommand,
-//                        intakeCommand,
-//                        emptySlot)
-//        );
 
         waitForStart();
 
         while(opModeIsActive()){
             CommandScheduler.getInstance().run();
             if(!driveCommand.isFinished()) {
-//                Log.i("First Spike: ", "Updating Follower");
                 follower.update();
             }
             if(driveCommand.isFinished()){
-//                Log.i("First Spike: ", "Done updating");
                 follower.pausePathFollowing();
             }
         }
