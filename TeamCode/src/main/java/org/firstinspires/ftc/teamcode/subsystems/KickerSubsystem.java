@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import static org.firstinspires.ftc.teamcode.Actions.Commands.moveToEmptySpindexSlot.LAUNCH_POS_1;
+
 import android.util.Log;
 
 import com.arcrobotics.ftclib.command.SubsystemBase;
@@ -12,34 +14,32 @@ public class KickerSubsystem extends SubsystemBase {
     private RobotHardware robotHardware;
 
     public static double LAUNCH_KICK_KICKING = 0.3;
-    private SpindexSubsystemReal spindex;
     public static double LAUNCH_KICK_RESTING = 0.025;
+    public static double KICKING_TOLERANCE = 0.05;
 
-    public KickerSubsystem(RobotHardware robotHardware, SpindexSubsystemReal spindex){
-        this.spindex = spindex;
+    public KickerSubsystem(RobotHardware robotHardware){
         this.robotHardware = robotHardware;
     }
 
-    public void moveKickerUpAndDown(){
-        if(spindex.isReadyToLaunch()) {
-            Log.i("Kicker ", "Kicking ball");
+    public void moveKickerUp(){
+        if(Math.abs(robotHardware.getSpindexPosition() - LAUNCH_POS_1) < KICKING_TOLERANCE) {
+            Log.i("Kicker ", "Kicking ball up");
             robotHardware.setLaunchKickPosition(LAUNCH_KICK_KICKING);
-            robotHardware.setLaunchKickPosition(LAUNCH_KICK_RESTING);
+//            robotHardware.setLaunchKickPosition(LAUNCH_KICK_RESTING);
         }
         else{
             Log.i("Kicker ", "Not kicking");
         }
-//        robotHardware.setLaunchKickPosition(LaunchKickAction.LAUNCH_KICK_KICKING);
-//        timer = new ElapsedTime(0);
-//        timer.reset();
-//
-//        if(timer.time() >= 2000){
-//            timer.reset();
-//            while(timer.time() <= 2000){
-//                robotHardware.setLaunchKickPosition(LaunchKickAction.LAUNCH_KICK_RESTING);
-//            }
-//        }
-
+    }
+    public void moveKickerDown(){
+        if(Math.abs(robotHardware.getSpindexPosition() - LAUNCH_POS_1) < KICKING_TOLERANCE) {
+            Log.i("Kicker ", "Kicking ball down");
+            robotHardware.setLaunchKickPosition(LAUNCH_KICK_RESTING);
+//            robotHardware.setLaunchKickPosition(LAUNCH_KICK_RESTING);
+        }
+        else{
+            Log.i("Kicker ", "Not kicking");
+        }
     }
 
     @Override

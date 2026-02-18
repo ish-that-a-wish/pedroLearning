@@ -150,6 +150,7 @@ public class DriveTo extends CommandBase {
 
         @Override
         public void initialize() {
+            follower.resumePathFollowing(); // just in case following is paused
             spindex.init();
             pathScheduled = false;
             jiggleForward = false;
@@ -157,12 +158,12 @@ public class DriveTo extends CommandBase {
 
             buildPath();
 
-            Log.i("DriveTo", "Initialized");
+//            Log.i("DriveTo", "Initialized");
         }
 
         @Override
         public void execute() {
-            Log.i("DriveTo ", "Follower current pose: " + follower.getPose());
+//            Log.i("DriveTo ", "Follower current pose: " + follower.getPose());
             if (!pathScheduled) {
                 follower.followPath(move);
                 pathScheduled = true;
@@ -181,7 +182,7 @@ public class DriveTo extends CommandBase {
             jiggle();
         }
 
-            Log.i("DriveTo", "Running");
+//            Log.i("DriveTo", "Running");
         }
 
         @Override
@@ -194,14 +195,14 @@ public class DriveTo extends CommandBase {
 //                Log.i("DriveTo ", "Still running");
 //                return false;
 //            }
-            Log.i("Is DriveTo Finished ", String.valueOf(follower.atPose(targetPose, 2, 2)));
+//            Log.i("Is DriveTo Finished ", String.valueOf(follower.atPose(targetPose, xTol, yTol)));
             return follower.atPose(targetPose, xTol, yTol);
         }
 
     @Override
     public void end(boolean interrupted) {
         follower.pausePathFollowing();
-        Log.i("DriveTo", interrupted ? "Interrupted" : "Ended");
+//        Log.i("DriveTo", interrupted ? "Interrupted" : "Ended");
     }
 
         private void buildPath() {
@@ -216,7 +217,7 @@ public class DriveTo extends CommandBase {
         }
 
         private void jiggle() {
-            Log.i("DriveTo ", "Jiggling");
+//            Log.i("DriveTo ", "Jiggling");
             Pose currentPose = follower.getPose();
 
             double offset = jiggleForward ? jiggleAmount : -jiggleAmount;

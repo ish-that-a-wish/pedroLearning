@@ -177,8 +177,6 @@ public class moveToEmptySpindexSlot extends CommandBase {
     public static double LAUNCH_POS_2 = LAUNCH_POS_3 - DELTA_BETWEEN_POSITIONS; //0.0075;
     public static boolean initMove;
 
-    private boolean isTimerReset;
-
     private Follower follower;
 
     private RobotHardware robotHardware;
@@ -192,8 +190,6 @@ public class moveToEmptySpindexSlot extends CommandBase {
     }
     private spindexPoses currentIntakePose;
 
-    private ElapsedTime timer;
-
     public List<BallEntry> storedColors = List.of(
             new BallEntry(0, INTAKE_POS_1, LAUNCH_POS_1, GameColors.NONE),
             new BallEntry(1, INTAKE_POS_2, LAUNCH_POS_2, GameColors.NONE),
@@ -206,12 +202,10 @@ public class moveToEmptySpindexSlot extends CommandBase {
     @Override
     public void initialize() {
         super.initialize();
-        Log.i("MOVE TO EMPTY SPINDEX SLOT", "Initialized");
+//        Log.i("MOVE TO EMPTY SPINDEX SLOT", "Initialized");
         initMove = false;
         initializeWithEmpty();
         spindexFree = false;
-        timer = new ElapsedTime(0);
-        isTimerReset = false;
 
     }
 
@@ -231,22 +225,22 @@ public class moveToEmptySpindexSlot extends CommandBase {
         }
 
         if(robotHardware.didBallDetectionBeamBreak() && spindexFree() && currentIntakePose == spindexPoses.INTAKE_POSE_1){ //if the current intake pose is 1
-            Log.i("Polls", "Detected - Not busy");
-            Log.i("moveToEmptySpindexSlot", "INTAKE 1 FILLED, MOVING TO INTAKE 2");
+//            Log.i("Polls", "Detected - Not busy");
+//            Log.i("moveToEmptySpindexSlot", "INTAKE 1 FILLED, MOVING TO INTAKE 2");
             robotHardware.setSpindexPosition(INTAKE_POS_2);
             currentIntakePose = spindexPoses.INTAKE_POSE_2;
         }
 
         if(robotHardware.didBallDetectionBeamBreak() && spindexFree() && currentIntakePose == spindexPoses.INTAKE_POSE_2){
-            Log.i("Polls", "Detected - Not busy");
-            Log.i("moveToEmptySpindexSlot", "INTAKE 2 FILLED, MOVING TO INTAKE 3");
+//            Log.i("Polls", "Detected - Not busy");
+//            Log.i("moveToEmptySpindexSlot", "INTAKE 2 FILLED, MOVING TO INTAKE 3");
             robotHardware.setSpindexPosition(INTAKE_POS_3);
             currentIntakePose = spindexPoses.INTAKE_POSE_3;
         }
 
         if(robotHardware.didBallDetectionBeamBreak() && spindexFree() && currentIntakePose == spindexPoses.INTAKE_POSE_3){
-            Log.i("Polls", "Detected - Not busy");
-            Log.i("moveToEmptySpindexSlot", "INTAKE 3 FILLED, MOVING TO LAUNCH POSE");
+//            Log.i("Polls", "Detected - Not busy");
+//            Log.i("moveToEmptySpindexSlot", "INTAKE 3 FILLED, MOVING TO LAUNCH POSE");
             robotHardware.setSpindexPosition(LAUNCH_POS_1);
             currentIntakePose = spindexPoses.LAUNCH_POSE;
             follower.resumePathFollowing(); // resume the path
@@ -277,13 +271,13 @@ public class moveToEmptySpindexSlot extends CommandBase {
     public boolean isFinished() {
         super.isFinished();
         if(currentIntakePose == spindexPoses.LAUNCH_POSE){
-            Log.i("moveToEmptySpindexSlot", "FULL INDEX, ENDING COMMAND");
+//            Log.i("moveToEmptySpindexSlot", "FULL INDEX, ENDING COMMAND");
 //            Log.i("moveToEmptySpindexSlot", "IsFull: " + isFull());
             spindexFree = true;
             return true; // return true if the current pose is launch pose
         }
         else{
-            Log.i("moveToEmptySpindexSlot", "INDEX NOT FULL RUNNING COMMAND");
+//            Log.i("moveToEmptySpindexSlot", "INDEX NOT FULL RUNNING COMMAND");
             return false;
         }
     }
@@ -297,7 +291,7 @@ public class moveToEmptySpindexSlot extends CommandBase {
 
         if (!list.isEmpty()) {
             double distance = 5000;
-            Log.i("ROBOT HARDWARE: ", String.valueOf(robotHardware));
+//            Log.i("ROBOT HARDWARE: ", String.valueOf(robotHardware));
             double currPos = robotHardware.getSpindexPosition();
             //this gets the closest empty slot to current position
             for (BallEntry entry : list) {
@@ -307,7 +301,7 @@ public class moveToEmptySpindexSlot extends CommandBase {
                 }
             }
         }
-        Log.i("SPINDEXER", "NEXT EMPTY SLOT INDEX: " + nextEmptySlotIndex);
+//        Log.i("SPINDEXER", "NEXT EMPTY SLOT INDEX: " + nextEmptySlotIndex);
         return nextEmptySlotIndex;
     }
 
