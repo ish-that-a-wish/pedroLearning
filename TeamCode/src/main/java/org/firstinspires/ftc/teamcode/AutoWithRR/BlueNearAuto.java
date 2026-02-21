@@ -25,7 +25,6 @@ import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.shootPre
 import android.util.Log;
 
 import org.firstinspires.ftc.teamcode.common.SpindexAutoAdvanceCommand;
-import org.firstinspires.ftc.teamcode.common.SpindexIndexOnceCommand;
 import org.firstinspires.ftc.teamcode.common.intakeCommand;
 
 import com.acmerobotics.roadrunner.InstantAction;
@@ -169,7 +168,7 @@ public class BlueNearAuto extends LinearOpMode {
         intakeStartCommand = new intakeCommand(intakeSubsystem, true);
         intakeStopCommand = new intakeCommand(intakeSubsystem, false);
 
-        spindexSubsystem = new SpindexSubsystem(robotHardware, this.follower);
+//        spindexSubsystem = new SpindexSubsystem(robotHardware, this.follower);
         spindexCommandReal = new spindexCommandReal(spindexSubsystem, robotHardware, follower);
 
         rrSpindex = new Spindex(robotHardware);
@@ -182,8 +181,8 @@ public class BlueNearAuto extends LinearOpMode {
         /* ---------------- INIT LOOP ---------------- */
         while (opModeInInit()) {
 
-            spindexSubsystem.initializeWithEmpty(); // or whatever config
-            spindexSubsystem.setCurrentIndex(0);
+//            spindexSubsystem.initializeWithEmpty(); // or whatever config
+//            spindexSubsystem.setCurrentIndex(0);
 
             /*
              * DPAD UP:

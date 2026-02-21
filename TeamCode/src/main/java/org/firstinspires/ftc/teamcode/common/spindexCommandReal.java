@@ -93,7 +93,7 @@ public class spindexCommandReal extends CommandBase {
     @Override
     public void execute(){
         super.execute();
-        spindexSubsystem.moveToNextEmptySlotCommand();
+        spindexSubsystem.moveToNextEmptyIntakeSlot();
 
         switch (state){
             case FOLLOWING_PATH:

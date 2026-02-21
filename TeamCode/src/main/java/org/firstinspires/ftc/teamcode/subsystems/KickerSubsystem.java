@@ -1,14 +1,10 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 
-import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.LAUNCH_POS_1;
-
 import android.util.Log;
 
 import com.arcrobotics.ftclib.command.SubsystemBase;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.Actions.NewActions.LaunchKickAction;
 import org.firstinspires.ftc.teamcode.common.RobotHardware;
 
 public class KickerSubsystem extends SubsystemBase {

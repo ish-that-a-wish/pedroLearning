@@ -86,21 +86,15 @@
 
 package org.firstinspires.ftc.teamcode.AutoWithRR;
 
-import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.moveToShootSpike1;
-import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.moveToSpike1Pickup;
-import static org.firstinspires.ftc.teamcode.Near.BlueNearAutoConstants.shootPreload;
-import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.LAUNCH_POS_2;
-import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.SpindexPoses.INTAKE_POSE_1;
-import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.SpindexPoses.LAUNCH_POSE_1;
-import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.SpindexPoses.LAUNCH_POSE_2;
-import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal.SpindexPoses.LAUNCH_POSE_3;
 
-import android.util.Log;
+import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem.SpindexPoses.INTAKE_POSE_1;
+import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem.SpindexPoses.LAUNCH_POSE_1;
+import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem.SpindexPoses.LAUNCH_POSE_2;
+import static org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem.SpindexPoses.LAUNCH_POSE_3;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.command.InstantCommand;
-import com.arcrobotics.ftclib.command.ParallelCommandGroup;
 import com.arcrobotics.ftclib.command.ParallelDeadlineGroup;
 import com.arcrobotics.ftclib.command.SequentialCommandGroup;
 import com.arcrobotics.ftclib.command.WaitCommand;
@@ -113,10 +107,13 @@ import org.firstinspires.ftc.teamcode.Actions.Commands.DriveTo;
 import org.firstinspires.ftc.teamcode.Actions.Commands.intakeCommand;
 import org.firstinspires.ftc.teamcode.Actions.Commands.moveToEmptySpindexSlot;
 import org.firstinspires.ftc.teamcode.Tests.Constants;
+import org.firstinspires.ftc.teamcode.common.LimelightAprilTagHelper;
 import org.firstinspires.ftc.teamcode.common.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.KickerSubsystem;
-import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal;
+import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.intakeSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.launchCommand;
+import org.firstinspires.ftc.teamcode.subsystems.launcherSubsystem;
 
 @Config
 @Autonomous
@@ -128,34 +125,44 @@ public class FirstSpike extends LinearOpMode {
     private intakeSubsystem intakeSubsystem;
 
     private intakeCommand intakeCommand;
-    private SpindexSubsystemReal spindex;
+    private SpindexSubsystem spindex;
     private DriveTo driveCommand;
     private KickerSubsystem kickerSubsystem;
+
+    private launchCommand launchCommand;
+
+    launcherSubsystem launcherSubsystem;
+
+    LimelightAprilTagHelper limelightAprilTagHelper;
+
 
     @Override
     public void runOpMode() throws InterruptedException {
         follower = Constants.createFollower(this.hardwareMap);
         follower.setStartingPose(new Pose(0,0, Math.toRadians(90))); // set the val to blue near init
         robotHardware = new RobotHardware(this.hardwareMap);
-        spindex = new SpindexSubsystemReal(this.robotHardware);
+        spindex = new SpindexSubsystem(this.robotHardware);
         driveCommand = new DriveTo(new Pose(0, 15, Math.toRadians(90)), follower, spindex);
         emptySlot = new moveToEmptySpindexSlot(spindex);
         intakeSubsystem = new intakeSubsystem(this.hardwareMap);
         intakeCommand = new intakeCommand(intakeSubsystem, true);
         kickerSubsystem = new KickerSubsystem(robotHardware);
+        limelightAprilTagHelper = new LimelightAprilTagHelper(robotHardware);
+        launcherSubsystem = new launcherSubsystem(robotHardware, limelightAprilTagHelper);
+        launchCommand = new launchCommand(launcherSubsystem, robotHardware);
 
         CommandScheduler.getInstance().registerSubsystem(kickerSubsystem, intakeSubsystem, spindex);
         CommandScheduler.getInstance().schedule(
                 new SequentialCommandGroup(
                         new ParallelDeadlineGroup(
                                 emptySlot,
+                                //launchCommand,
                                 driveCommand,
                                 intakeCommand
                         ),
                         launch3Balls(),
-                        new InstantCommand(() -> spindex.moveToPose(INTAKE_POSE_1))
-                )
-        );
+                        new InstantCommand(() -> spindex.moveToPose(INTAKE_POSE_1)))
+                );
 
         waitForStart();
 
@@ -177,7 +184,7 @@ public class FirstSpike extends LinearOpMode {
                 kickBall(spindex.convertSpindexPoseToDouble(LAUNCH_POSE_1)),
                 new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_3)),
                 kickBall(spindex.convertSpindexPoseToDouble(LAUNCH_POSE_3)),
-                new InstantCommand(() -> spindex.moveToPose(SpindexSubsystemReal.SpindexPoses.LAUNCH_POSE_2)),
+                new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_2)),
                 kickBall(spindex.convertSpindexPoseToDouble(LAUNCH_POSE_2))
         );
     }

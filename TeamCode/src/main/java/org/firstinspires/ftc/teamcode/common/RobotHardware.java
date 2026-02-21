@@ -10,6 +10,7 @@ import android.util.Log;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.ColorRangeSensor;
@@ -22,6 +23,8 @@ import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import java.util.List;
 
 @Config
 public class RobotHardware {
@@ -52,6 +55,9 @@ public class RobotHardware {
     private AnalogInput launchKickEncoder;
 
     private Servo launchVisorServo;
+
+    private LLResultTypes.FiducialResult fiducialResults;
+
     private AnalogInput visorServoEncoder;
     private Servo launchKickServo;
     private Servo leftLiftServo;
@@ -192,6 +198,16 @@ public class RobotHardware {
 
         return result;
     }
+
+//    public LLResultTypes.FiducialResult getLatestLimelightFiducialResults() {
+////        Log.i("== ROBOTHARDWARE ==", " GetLatestLimelightResults");
+//
+//        if (limelight != null) {
+//            fiducialResults = limelight.getLatestResult().getFiducialResults().;
+//        }
+//
+//        return fiducialResults;
+//    }
 
     public void updateLimelightYawDegrees(double yaw) {
         limelight.updateRobotOrientation(yaw);

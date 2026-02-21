@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.Actions.Commands;
 
-import android.util.Log;
-
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.command.CommandBase;
 import com.pedropathing.follower.Follower;
@@ -9,9 +7,7 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem;
-import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal;
 
 @Config
 public class DriveTo extends CommandBase {
@@ -140,9 +136,9 @@ public class DriveTo extends CommandBase {
         private boolean startJiggling = false;
         private final int jiggleAmount = 5;
         private final int pathBuffer = 3;
-        private SpindexSubsystemReal spindex;
+        private SpindexSubsystem spindex;
 
-        public DriveTo(Pose targetPose, Follower follower, SpindexSubsystemReal spindex) {
+        public DriveTo(Pose targetPose, Follower follower, SpindexSubsystem spindex) {
             this.spindex = spindex;
             this.targetPose = targetPose;
             this.follower = follower;

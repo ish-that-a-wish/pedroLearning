@@ -1,11 +1,11 @@
 package org.firstinspires.ftc.teamcode.Actions.Commands;
 import android.util.Log;
 import com.arcrobotics.ftclib.command.CommandBase;
-import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystemReal;
+import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem;
 
 public class moveToEmptySpindexSlot extends CommandBase {
-    private SpindexSubsystemReal spindex;
-    public moveToEmptySpindexSlot(SpindexSubsystemReal spindex) {
+    private SpindexSubsystem spindex;
+    public moveToEmptySpindexSlot(SpindexSubsystem spindex) {
         this.spindex = spindex;
         addRequirements(spindex);
     }
@@ -22,12 +22,12 @@ public class moveToEmptySpindexSlot extends CommandBase {
 
         spindex.initMove();
 
-        spindex.intakeBalls();
+        spindex.moveToNextEmptyIntakeSlot();
     }
 
     @Override
     public boolean isFinished() {
         super.isFinished();
-        return spindex.isReadyToLaunch();
+        return spindex.isFull();
     }
 }
