@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.Actions.Commands;
 
+import android.util.Log;
+
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.command.CommandBase;
 import com.pedropathing.follower.Follower;
@@ -196,8 +198,8 @@ public class DriveTo extends CommandBase {
 
     @Override
     public void end(boolean interrupted) {
-        follower.pausePathFollowing();
-//        Log.i("DriveTo", interrupted ? "Interrupted" : "Ended");
+//        follower.pausePathFollowing();
+        Log.i("DriveTo", interrupted ? "Interrupted" : "Ended");
     }
 
         private void buildPath() {

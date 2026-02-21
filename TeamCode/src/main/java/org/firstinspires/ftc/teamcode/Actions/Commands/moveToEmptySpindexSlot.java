@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.Actions.Commands;
 import android.util.Log;
 import com.arcrobotics.ftclib.command.CommandBase;
+
+import org.firstinspires.ftc.teamcode.common.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem;
 
 public class moveToEmptySpindexSlot extends CommandBase {
@@ -22,7 +24,7 @@ public class moveToEmptySpindexSlot extends CommandBase {
 
         spindex.initMove();
 
-        spindex.moveToNextEmptyIntakeSlot();
+        spindex.intakeBalls();
     }
 
     @Override

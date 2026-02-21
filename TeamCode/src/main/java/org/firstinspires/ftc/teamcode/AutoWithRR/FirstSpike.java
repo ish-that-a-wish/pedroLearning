@@ -155,9 +155,10 @@ public class FirstSpike extends LinearOpMode {
         CommandScheduler.getInstance().schedule(
                 new SequentialCommandGroup(
                         new ParallelDeadlineGroup(
-                                emptySlot,
-                                //launchCommand,
+//                                emptySlot,
                                 driveCommand,
+                                emptySlot,
+                                launchCommand,
                                 intakeCommand
                         ),
                         launch3Balls(),
@@ -171,9 +172,9 @@ public class FirstSpike extends LinearOpMode {
             if(!driveCommand.isFinished()) {
                 follower.update();
             }
-            if(driveCommand.isFinished()){
-                follower.pausePathFollowing();
-            }
+//            if(driveCommand.isFinished()){
+//                follower.pausePathFollowing();
+//            }
         }
     }
     private SequentialCommandGroup launch3Balls(){

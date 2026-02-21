@@ -41,9 +41,9 @@ public class SpindexSubsystem extends SubsystemBase {
     public SpindexSubsystem(RobotHardware robotHardware){
         this.robotHardware = robotHardware;
     }
-    //    public boolean spindexFree(){
-//        return robotHardware.getSpindexPositionFromEncoder() > robotHardware.getSpindexPosition() - 0.05 && robotHardware.getSpindexPositionFromEncoder() < robotHardware.getSpindexPosition() + 0.05;
-//    }
+        public boolean spindexFree(){
+        return robotHardware.getSpindexPositionFromEncoder() > robotHardware.getSpindexPosition() - 0.05 && robotHardware.getSpindexPositionFromEncoder() < robotHardware.getSpindexPosition() + 0.05;
+    }
     public void moveToPose(SpindexPoses pose){
         switch (pose){
             case INTAKE_POSE_1:
@@ -88,13 +88,13 @@ public class SpindexSubsystem extends SubsystemBase {
     //    public boolean isReadyToLaunch(){
 //        return currentPose == SpindexPoses.LAUNCH_POSE_1; // return true if the current pose is launch pose
 //    }
-//    public void intakeBalls(){
-//        if(robotHardware.didBallDetectionBeamBreak() && spindexFree() && currentPose == SpindexPoses.INTAKE_POSE_1) moveToPose(SpindexPoses.INTAKE_POSE_2);
-//
-//        if(robotHardware.didBallDetectionBeamBreak() && spindexFree() && currentPose == SpindexPoses.INTAKE_POSE_2) moveToPose(SpindexPoses.INTAKE_POSE_3);
-//
-//        if(robotHardware.didBallDetectionBeamBreak() && spindexFree() && currentPose == SpindexPoses.INTAKE_POSE_3) moveToPose(SpindexPoses.LAUNCH_POSE_1);
-//    }
+    public void intakeBalls(){
+        if(robotHardware.didBallDetectionBeamBreak() && spindexFree() && currentPose == SpindexPoses.INTAKE_POSE_1) moveToPose(SpindexPoses.INTAKE_POSE_2);
+
+        if(robotHardware.didBallDetectionBeamBreak() && spindexFree() && currentPose == SpindexPoses.INTAKE_POSE_2) moveToPose(SpindexPoses.INTAKE_POSE_3);
+
+        if(robotHardware.didBallDetectionBeamBreak() && spindexFree() && currentPose == SpindexPoses.INTAKE_POSE_3) moveToPose(SpindexPoses.LAUNCH_POSE_1);
+    }
     public double convertSpindexPoseToDouble(SpindexPoses pose){
         switch (pose){
             case INTAKE_POSE_1:
@@ -139,6 +139,7 @@ public class SpindexSubsystem extends SubsystemBase {
     }
     public void moveToNextEmptyIntakeSlot(){
         int slotIndex = getNextEmptyIntakeSlotIndex();
+        Log.i("SPINDEXER: ", "MOVING TO SLOT" + slotIndex);
         if(slotIndex == 0){
             moveToPose(SpindexPoses.INTAKE_POSE_1);
         }

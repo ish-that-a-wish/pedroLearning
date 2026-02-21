@@ -18,24 +18,23 @@ public class launcherSubsystem extends SubsystemBase {
 
     LimelightAprilTagHelper limelightAprilTagHelper;
 
-    public launcherSubsystem(RobotHardware robotHardware, LimelightAprilTagHelper limelightAprilTagHelper){
+    public launcherSubsystem(RobotHardware robotHardware, LimelightAprilTagHelper limelightAprilTagHelper) {
         this.robotHardware = robotHardware;
         this.limelightAprilTagHelper = limelightAprilTagHelper;
 //      ?""""
     }
 
 
-
-    public LimelightYDT getLimelightLaunchValues(){
+    public LimelightYDT getLimelightLaunchValues() {
         return limelightAprilTagHelper.getGoalYawDistanceToleranceFromCurrentPosition();
     }
 
-    public BallLaunchParameters getArtifactLaunchValues(){
+    public BallLaunchParameters getArtifactLaunchValues() {
         limelightYDT = getLimelightLaunchValues();
+        if (limelightYDT == null) {
+            return LaunchParametersLookup.getBallLaunchParameters(67.0);
+        }
         return LaunchParametersLookup.getBallLaunchParameters(limelightYDT.distance);
     }
-
-
-
-
 }
+
