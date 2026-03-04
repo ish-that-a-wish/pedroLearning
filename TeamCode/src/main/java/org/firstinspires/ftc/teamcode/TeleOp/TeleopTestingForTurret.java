@@ -16,8 +16,10 @@ import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.command.InstantCommand;
 import com.arcrobotics.ftclib.command.SequentialCommandGroup;
 import com.arcrobotics.ftclib.command.WaitCommand;
+import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -39,7 +41,6 @@ import java.util.List;
 public class TeleopTestingForTurret extends LinearOpMode {
     //MIDPOINT: (128,135)
     //FARPOINT: (133, 137)
-    
     public static double xTarget = 133;
     public static double yTarget = 137;
     public static int lastKickWait = 130;
@@ -49,8 +50,6 @@ public class TeleopTestingForTurret extends LinearOpMode {
     public static double power = 0.2;
     public static int velocity = 2000;
     private final double turretTicksPerRev = 751.8 * 5; // for torque increase
-    private Pose RED_GOAL_POSE = new Pose(xTarget, yTarget, Math.toRadians(45)); // pose of the red goal
-    private Pose pose;
     private Follower follower;
     private DcMotorEx turret;
     private DcMotorEx frontRightDriveMotor;
@@ -61,6 +60,12 @@ public class TeleopTestingForTurret extends LinearOpMode {
     private double distFromGoal;
     private SpindexSubsystem spindex;
     private IntakeSubsystem intake;
+    private Vector robotVelocity;
+    private int averageShotTimeMs = 500;
+    private Pose futurePose;
+    private Pose currentPose;
+    private ElapsedTime timer = new ElapsedTime();
+    private Pose RED_GOAL_POSE = new Pose(xTarget, yTarget, Math.toRadians(45)); // pose of the red goal;
     @Override
     public void runOpMode() throws InterruptedException {
         robotHardware = new RobotHardware(this.hardwareMap);
@@ -90,9 +95,13 @@ public class TeleopTestingForTurret extends LinearOpMode {
         backLeftDriveMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
         spindex.initMove();
+        currentPose = follower.getPose(); // get the init pose
         waitForStart();
 
         while(opModeIsActive()){
+            currentPose = follower.getPose();
+
+            Log.i("FOLLOWER: ", "Current Pose: " + currentPose);
             RED_GOAL_POSE = new Pose(xTarget, yTarget);
 
             double speed = -gamepad1.left_stick_y;
@@ -112,9 +121,8 @@ public class TeleopTestingForTurret extends LinearOpMode {
             backRightDriveMotor.setPower(backRightPower);
 
             follower.update();
-            pose = follower.getPose();
 
-            distFromGoal = follower.getPose().distanceFrom(RED_GOAL_POSE);
+            distFromGoal = currentPose.distanceFrom(RED_GOAL_POSE);
             keepLauncherWarm(distFromGoal); // tell the dist from goal
             updateTurret();
             telemetry.update();
@@ -123,7 +131,8 @@ public class TeleopTestingForTurret extends LinearOpMode {
                 intake();
             }
             if(gamepad1.dpad_down){
-                List<Double> visorPoses = getVisorPoses(follower.getPose().distanceFrom(RED_GOAL_POSE));
+                List<Double> visorPoses = getVisorPoses(currentPose.distanceFrom(RED_GOAL_POSE));
+                timer.reset();
                 CommandScheduler.getInstance().schedule(
                         new SequentialCommandGroup(
                             new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_1)),
@@ -144,19 +153,20 @@ public class TeleopTestingForTurret extends LinearOpMode {
 
             Log.i("Launcher: ", "Dist from goal: " + distFromGoal);
             Log.i("Turret: ","Amount to move to goal: " +  calculateAmountToTurnToGoal());
-            Log.i("Turret: ", "Positional alignment pos: " + pose);
             Log.i("Turret: ", "Degrees to ticks: " + degreesToTicks(calculateAmountToTurnToGoal()));
     }
 }
     public double calculateAmountToTurnToGoal(){
-        double amountToTurn = Math.atan2(RED_GOAL_POSE.getY() - pose.getY(), RED_GOAL_POSE.getX() - pose.getX());
-        return Math.toDegrees(amountToTurn - pose.getHeading());
+        double amountToTurn = Math.atan2(RED_GOAL_POSE.getY() - currentPose.getY(), RED_GOAL_POSE.getX() - currentPose.getX());
+        return Math.toDegrees(amountToTurn - currentPose.getHeading());
     }
     public double degreesToTicks(double deg){
         return (deg/360) * turretTicksPerRev;
     }
     public void updateTurret(){
         double deg = calculateAmountToTurnToGoal();
+        if(deg > 90) return;
+        if (deg < -90) return;
         int ticks = (int) degreesToTicks(deg);
 
         turret.setDirection(ticks < 0 ? DcMotorEx.Direction.FORWARD : DcMotorEx.Direction.REVERSE);
@@ -191,9 +201,14 @@ public class TeleopTestingForTurret extends LinearOpMode {
         return new SequentialCommandGroup(
                 new WaitCommand(topWait),
                 new InstantCommand(() -> robotHardware.setLaunchKickPosition(LAUNCH_KICK_KICKING)),
+                new InstantCommand(this::printTime),
                 new WaitCommand(lastWait ? lastKickWait : midWait),
                 new InstantCommand(() -> robotHardware.setLaunchKickPosition(LAUNCH_KICK_RESTING)),
                 new WaitCommand(bottomWait)
         );
+    }
+    public void printTime(){
+        Log.i("FOLLOWER: " ,"CURRENT TIME: " + timer.milliseconds());
+        timer.reset();
     }
 }
