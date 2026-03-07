@@ -146,7 +146,7 @@ public class FirstSpike extends LinearOpMode {
 
         //launcher
         aprilTagHelper = new LimelightAprilTagHelper(this.robotHardware);
-        launchSystem = new LauncherSubsystem(this.robotHardware, aprilTagHelper);
+//        launchSystem = new LauncherSubsystem(this.robotHardware, follower, this.hardwareMap);
         launchCommand = new LaunchCommand(this.launchSystem, this.robotHardware);
 
         //commands
