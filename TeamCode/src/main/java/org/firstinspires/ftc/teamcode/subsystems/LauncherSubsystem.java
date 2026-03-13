@@ -23,53 +23,48 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.common.BallLaunchParameters;
 import org.firstinspires.ftc.teamcode.common.LaunchParametersLookup;
 import org.firstinspires.ftc.teamcode.common.RobotHardware;
+import org.openftc.apriltag.AprilTagDetection;
 
 import java.util.List;
 
 @Config
 public class LauncherSubsystem extends SubsystemBase {
-    public ElapsedTime timer = new ElapsedTime();
-    public static double shootTimeMs = 200;
-    private final double turretTicksPerRev = 751.8 * 5; // for torque increase
-    public static double xTarget = 133;
-    public static double yTarget = 137;
-
+    //Basic required subsys
     public RobotHardware robotHardware;
-    private Pose RED_GOAL_POSE = new Pose(xTarget, yTarget, Math.toRadians(45)); // pose of the red goal;
-    // can adjust later
-    public Pose midPoint = new Pose(133, 137, Math.toRadians(45));
-    public Pose farPoint = new Pose(133, 137, Math.toRadians(45));
-    public Pose shortPoint = new Pose(133, 137, Math.toRadians(45));
     private Follower follower;
-    public Pose currentPose;
-    public double distFromGoal;
-    private DcMotorEx turret;
-    public static int topWait = 150;
-    public static int midWait = 150;
-    public static int bottomWait = 100;
-    public HardwareMap hardwareMap;
-    public static double power = 0.2;
-    public static int velocity = 2000;
     public SpindexSubsystem spindex;
 
-    public enum Distance{
-        SHORT,
-        MID,
-        FAR
-    }
-    public Distance currentDistance;
-    public Pose futurePose; // defualt to it being noting
-    private double amountToTurn;
+
+    // Goal following vars
+    private Pose RED_GOAL_POSE = new Pose(133, 137, Math.toRadians(45)); // pose of the red goal;
+    public Pose currentPose;
+    public double distFromGoal;
+
+    //turret specific vars
+    private final double turretTicksPerRev = 751.8 * 5; // for torque increase
+    private DcMotorEx turret;
+    //SOTM
     private boolean shootOnMove = false;
-    private Pose poseUsed;
+    private Pose goalUsed;
+    public static double shootTimeMs = 200;
+    public Pose futureGoal; // defualt to it being noting
+
+    // TURRET KP AND KD
+    public static double kp = 0.001;
+    public static double kd = 0.00;
+    private double lastError = 0;
+    public static double tolerance = 0.4; // set the tolerance to 0.4 deg
+    private double power = 0;
+    private final ElapsedTime timer = new ElapsedTime();
+    public static boolean useTurretPD = false;
     public LauncherSubsystem(RobotHardware robotHardware, Follower follower, HardwareMap hardwareMap, SpindexSubsystem spindex){
         this.spindex = spindex;
-        this.hardwareMap = hardwareMap;
         this.follower = follower;
         this.robotHardware = robotHardware;
 
@@ -77,25 +72,23 @@ public class LauncherSubsystem extends SubsystemBase {
 
         turret = hardwareMap.get(DcMotorEx.class, "LaunchTurretMotor");
         turret.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        turret.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         turret.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        turret.setPower(power);
+        turret.setPower(0.2);
     }
 
     public void update(){
         currentPose = follower.getPose();
         if(shootOnMove) shootOnMove();
 
-        poseUsed = shootOnMove ? futurePose : currentPose;
-        distFromGoal = poseUsed.distanceFrom(RED_GOAL_POSE);
+        goalUsed = shootOnMove ? futureGoal : RED_GOAL_POSE;
+        distFromGoal = currentPose.distanceFrom(goalUsed);
 
         keepLauncherWarm();
-        updateTurret();
-        changeGoalByDist();
+        if (useTurretPD) updateUsingPD();
+        else updateTurret();
 
         Log.i("Launcher: ", "Dist from goal: " + distFromGoal);
         Log.i("Launcher: ", "shooting on move: " + shootOnMove);
-        Log.i("Launcher: ", "Current Pose: " + (shootOnMove ? futurePose : currentPose));
     }
 
     public void keepLauncherWarm(){
@@ -107,16 +100,17 @@ public class LauncherSubsystem extends SubsystemBase {
     }
 
     public double calculateAmountToTurnToGoal(){
-        amountToTurn = Math.atan2(
-                RED_GOAL_POSE.getY() - poseUsed.getY(),
-                RED_GOAL_POSE.getX() - poseUsed.getX()
+        double amountToTurn = Math.atan2(
+                goalUsed.getY() - currentPose.getY(),
+                goalUsed.getX() - currentPose.getX()
         );
-        return Math.toDegrees(amountToTurn - poseUsed.getHeading());
+        return Math.toDegrees(amountToTurn - currentPose.getHeading());
     }
     public double degreesToTicks(double deg){
         return (deg/360) * turretTicksPerRev;
     }
     public void updateTurret(){
+        turret.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         double deg = calculateAmountToTurnToGoal();
         if(deg > 90) return;
         if (deg < -90) return;
@@ -127,8 +121,7 @@ public class LauncherSubsystem extends SubsystemBase {
 
         turret.setTargetPosition(Math.abs(ticks));
         turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        turret.setVelocity(velocity);
-        follower.getVelocity();
+        turret.setVelocity(2000);
     }
     public List<Double> getVisorPoses(){
         BallLaunchParameters ballLaunchParameters = LaunchParametersLookup.getBallLaunchParameters(distFromGoal);
@@ -137,49 +130,27 @@ public class LauncherSubsystem extends SubsystemBase {
     }
     public Command moveKicker(){
         return new SequentialCommandGroup(
-                new WaitCommand(topWait),
+                new WaitCommand(150),
                 new InstantCommand(() -> robotHardware.setLaunchKickPosition(LAUNCH_KICK_KICKING)),
-                new WaitCommand(midWait),
+                new WaitCommand(150),
                 new InstantCommand(() -> robotHardware.setLaunchKickPosition(LAUNCH_KICK_RESTING)),
-                new WaitCommand(bottomWait)
+                new WaitCommand(100)
         );
     }
     public Command shootAll(){
         List<Double> visorPoses = getVisorPoses();
-        timer.reset();
         return new SequentialCommandGroup(
                 new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_1)),
                 new InstantCommand(() -> robotHardware.setLaunchVisorPosition(visorPoses.get(0))),
-                new InstantCommand(() -> getTimeToShoot(LAUNCH_POSE_1)),
                 moveKicker(),
                 new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_3)),
                 new InstantCommand(() -> robotHardware.setLaunchVisorPosition(visorPoses.get(1))),
-                new InstantCommand(() -> getTimeToShoot(LAUNCH_POSE_3)),
                 moveKicker(),
                 new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_2)),
                 new InstantCommand(() -> robotHardware.setLaunchVisorPosition(visorPoses.get(2))),
-                new InstantCommand(() -> getTimeToShoot(LAUNCH_POSE_2)),
                 moveKicker(),
                 new InstantCommand(() -> spindex.moveToPose(INTAKE_POSE_1))
         );
-    }
-
-    public void changeGoalByDist(){
-        if(distFromGoal < 40) currentDistance = Distance.SHORT;
-        else if (distFromGoal > 72) currentDistance = Distance.FAR;
-        else currentDistance = Distance.MID;
-
-        // depending on the distance change the point
-        switch(currentDistance){
-            case FAR:
-                RED_GOAL_POSE = farPoint;
-                break;
-            case MID:
-                RED_GOAL_POSE = midPoint;
-                break;
-            case SHORT:
-                RED_GOAL_POSE = shortPoint;
-        }
     }
 
     // to shoot on the move, take into account the current velocity of our robot
@@ -189,25 +160,31 @@ public class LauncherSubsystem extends SubsystemBase {
         Vector velocity = follower.getVelocity();
         double t = shootTimeMs / 1000.0; // convert ms -> seconds
 
-        futurePose = new Pose(
-                currentPose.getX() + velocity.getXComponent() * t,
-                currentPose.getY() + velocity.getYComponent() * t,
-                currentPose.getHeading() + velocity.getTheta() * t
+        futureGoal = new Pose(
+                RED_GOAL_POSE.getX() - velocity.getXComponent() * t,
+                RED_GOAL_POSE.getY() - velocity.getYComponent() * t
         );
     }
     public void setShootOnMove(boolean shootOnMove){this.shootOnMove = shootOnMove;}
 //    public boolean getShootOnMove(){return shootOnMove;}
     //get the spindex pose to see how long it takes for each diff pos
-    public void getTimeToShoot(SpindexSubsystem.SpindexPoses spindexPose){
-        // go in 132 order because thats the way we shoot our balls
-        timer.reset(); // reset the timer every diff check
-        switch (spindexPose){
-            case LAUNCH_POSE_1:
-                Log.i("Launcher: ", "Time to shoot first ball: " + timer.milliseconds());
-            case LAUNCH_POSE_3:
-                Log.i("Launcher: ", "Time to shoot second ball: " + timer.milliseconds());
-            case LAUNCH_POSE_2:
-                Log.i("Launcher: ", "Time to shoot third ball: " + timer.milliseconds());
-        }
+    public void updateUsingPD(){
+        turret.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        double deltaTime = timer.seconds();
+        if(deltaTime == 0) return;
+        timer.reset();
+
+        double error = calculateAmountToTurnToGoal();
+        if(Math.abs(error) > 90 || Math.abs(error) < tolerance) return; // turret limits
+
+        double pTerm = error * kp;
+        double dTerm = 0;
+        if(deltaTime > 0) dTerm = ((error - lastError ) / deltaTime) * kd;
+
+        power = Range.clip(pTerm + dTerm, -1, 1); // set the power to max out at 1, can add max power later
+
+        turret.setPower(power);
+        lastError = error;
     }
 }
