@@ -2,8 +2,6 @@ package org.firstinspires.ftc.teamcode.common;
 
 //import static org.firstinspires.ftc.teamcode.subsystems.LaunchSystem.FLYWHEEL_POWER_BUCKET_THRESHOLD_FAR;
 
-import static org.firstinspires.ftc.teamcode.subsystems.LaunchSystem.FLYWHEEL_POWER_BUCKET_THRESHOLD_FAR;
-
 import android.util.Log;
 
 import com.acmerobotics.dashboard.config.Config;
@@ -238,7 +236,7 @@ public class LimelightAprilTagHelper  {
             double horizontalDistance = calculateHorizontalDistance(x, z);
 
             double tagOffset = TARGET_OFFSET_BEHIND_TAG_INCHES_NEAR;
-            if (horizontalDistance > FLYWHEEL_POWER_BUCKET_THRESHOLD_FAR)
+            if (horizontalDistance > 0.55)
                 tagOffset = TARGET_OFFSET_BEHIND_TAG_INCHES_FAR;
 
             double adjustedX = x + tagOffset * Math.sin(oyaw);

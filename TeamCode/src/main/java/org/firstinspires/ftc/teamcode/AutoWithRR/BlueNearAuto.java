@@ -39,7 +39,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.Tests.Constants;
 import org.firstinspires.ftc.teamcode.common.RobotHardware;
 //import org.firstinspires.ftc.teamcode.common.spindexCommandReal;
-import org.firstinspires.ftc.teamcode.subsystems.Spindex;
 import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 
@@ -144,8 +143,6 @@ public class BlueNearAuto extends LinearOpMode {
     private IntakeSubsystem intakeSubsystem;
 //    private spindexCommandReal spindexCommandReal;
 
-    private Spindex rrSpindex;
-
 
 
     /* ------------------------------------------------------------
@@ -168,8 +165,6 @@ public class BlueNearAuto extends LinearOpMode {
 
         spindexSubsystem = new SpindexSubsystem(robotHardware);
 //        spindexCommandReal = new spindexCommandReal(spindexSubsystem, robotHardware, follower);
-
-        rrSpindex = new Spindex(robotHardware);
 
         // Build default paths
         buildPaths();
@@ -368,20 +363,6 @@ public class BlueNearAuto extends LinearOpMode {
      * PATH BUILDING
      * ------------------------------------------------------------ */
 
-    private void spindexMotion(){
-        rrSpindex.initializeWithUnknowns();
-        while(!rrSpindex.isFull()){
-            while (!robotHardware.isSpindexBusy()){
-                if(robotHardware.didBallDetectionBeamBreak()){
-                    Log.i("RRSPINDEX", "RUNNING");
-                    Actions.runBlocking(
-                            rrSpindex.moveToNextEmptySlotAction()
-                    );
-                }
-            }
-        }
-
-    }
 
     private void buildPaths() {
 
@@ -395,8 +376,6 @@ public class BlueNearAuto extends LinearOpMode {
 //                                new SpindexAutoAdvanceCommand(spindexSubsystem, 10, robotHardware, rrSpindex)
 //                        )
 //                )
-
-                .addParametricCallback(0.15, this::spindexMotion)
 
                 //.addParametricCallback(0.15, ()-> CommandScheduler.getInstance().schedule(spindexCommandReal))
                 //.addParametricCallback(0.1, ()-> CommandScheduler.getInstance().schedule(intakeCommand1))

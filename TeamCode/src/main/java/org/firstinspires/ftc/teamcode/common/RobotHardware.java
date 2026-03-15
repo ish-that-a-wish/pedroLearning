@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.common;
 
 //import static org.firstinspires.ftc.teamcode.Actions.SpindexAction.SPINDEX_POSITION_TOLERANCE;
 import static org.firstinspires.ftc.teamcode.Actions.NewActions.SpindexAction.SPINDEX_POSITION_TOLERANCE;
-import static org.firstinspires.ftc.teamcode.subsystems.LaunchSystem.TURRET_VELOCITY_COARSE;
 //import static org.firstinspires.ftc.teamcode.subsystems.LaunchSystem.TURRET_VELOCITY_COARSE;
 
 import android.util.Log;
@@ -372,7 +371,7 @@ public class RobotHardware {
 
     public void setLaunchTurretPosition(int pos) {
 //        Log.i("=== ROBOTHARDWARE ===", " setLaunchTurretPosition: " + pos);
-        setLaunchTurretPositionAndVelocity(pos, TURRET_VELOCITY_COARSE);
+        setLaunchTurretPositionAndVelocity(pos, 4000);
     }
 
     public void setLaunchTurretPositionAndVelocity(int pos, int velocity) {
