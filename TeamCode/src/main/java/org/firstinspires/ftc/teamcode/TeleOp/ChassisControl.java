@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.TeleOp;
 
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -44,15 +45,19 @@ public class ChassisControl {
     }
     public void init(){
         frontRightDriveMotor = hardwareMap.get(DcMotorEx.class, "rightFront");
-
+        frontRightDriveMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         //this motor is oriented backwards, hence reversing direction
         frontLeftDriveMotor = hardwareMap.get(DcMotorEx.class, "leftFront");
         frontLeftDriveMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        frontLeftDriveMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         backRightDriveMotor = hardwareMap.get(DcMotorEx.class, "rightRear");
+        backRightDriveMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         //this motor is oriented backwards, hence reversing direction
         backLeftDriveMotor = hardwareMap.get(DcMotorEx.class, "leftRear");
         backLeftDriveMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        backLeftDriveMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
     }
 }
