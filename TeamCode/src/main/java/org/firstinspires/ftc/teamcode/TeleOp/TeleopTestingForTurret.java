@@ -27,6 +27,7 @@ import org.firstinspires.ftc.teamcode.common.BallLaunchParameters;
 import org.firstinspires.ftc.teamcode.common.LaunchParametersLookup;
 import org.firstinspires.ftc.teamcode.common.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.LauncherSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.SpindexSort;
 import org.firstinspires.ftc.teamcode.subsystems.SpindexSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 
@@ -35,18 +36,20 @@ import java.util.List;
 @Config
 @TeleOp
 public class TeleopTestingForTurret extends LinearOpMode {
-    public static boolean shootOnMove = false; // set by false by defualt
     public ChassisControl chassis;
     private Follower follower;
     private RobotHardware robotHardware;
     private SpindexSubsystem spindex;
     private IntakeSubsystem intake;
     private LauncherSubsystem launch;
+    private SpindexSort spindexSort;
+    public static boolean sort = false;
     @Override
     public void runOpMode() throws InterruptedException {
             robotHardware = new RobotHardware(this.hardwareMap);
             spindex = new SpindexSubsystem(this.robotHardware);
             intake = new IntakeSubsystem(this.hardwareMap);
+            spindexSort = new SpindexSort(telemetry, robotHardware);
 
             follower = Constants.createFollower(this.hardwareMap);
             follower.setStartingPose(new Pose(72, 72, Math.toRadians(90)));
@@ -55,7 +58,8 @@ public class TeleopTestingForTurret extends LinearOpMode {
             launch = new LauncherSubsystem(robotHardware, follower, this.hardwareMap, spindex);
 
             chassis.init();
-            spindex.initMove();
+            if(sort) spindexSort.init();
+            else spindex.initMove();
 
             waitForStart();
 
@@ -65,11 +69,11 @@ public class TeleopTestingForTurret extends LinearOpMode {
                 CommandScheduler.getInstance().run();
 
                 //still have sum goof spindex logic to fix
-                if(!spindex.isReadyToLaunch()){intake.runIntake(); spindex.intakeBalls();}
-                if(gamepad1.a) CommandScheduler.getInstance().schedule(launch.shootAll());
-
-                launch.setShootOnMove(shootOnMove); //constantly update shoot on move for testing
-
+                if(!spindex.isReadyToLaunch() && !sort){intake.runIntake(); spindex.intakeBalls();}
+                if(sort) spindexSort.update();
+                if(gamepad1.a)
+                    if(sort) CommandScheduler.getInstance().schedule(launch.shootColor(spindexSort));
+                    if(!sort) CommandScheduler.getInstance().schedule(launch.shootAll());
                 telemetry.update();
         }
     }

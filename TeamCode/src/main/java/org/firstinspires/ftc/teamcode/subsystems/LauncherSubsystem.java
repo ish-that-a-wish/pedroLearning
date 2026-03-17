@@ -27,10 +27,12 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.common.BallLaunchParameters;
+import org.firstinspires.ftc.teamcode.common.GameColors;
 import org.firstinspires.ftc.teamcode.common.LaunchParametersLookup;
 import org.firstinspires.ftc.teamcode.common.RobotHardware;
 import org.openftc.apriltag.AprilTagDetection;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Config
@@ -76,7 +78,7 @@ public class LauncherSubsystem extends SubsystemBase {
     private ElapsedTime timer = new ElapsedTime();
 
     public static boolean usePDF = false;
-
+    public List<GameColors> motif = new ArrayList<>();
     public LauncherSubsystem(RobotHardware robotHardware, Follower follower, HardwareMap hardwareMap, SpindexSubsystem spindex){
         this.spindex = spindex;
         this.follower = follower;
@@ -92,6 +94,12 @@ public class LauncherSubsystem extends SubsystemBase {
 
         pdTimer.reset();
         lastHeading = currentPose.getHeading();
+
+
+        // add motif scanning later
+        motif.add(GameColors.PURPLE);
+        motif.add(GameColors.GREEN);
+        motif.add(GameColors.PURPLE);
     }
 
     public void update(){
@@ -244,6 +252,21 @@ public class LauncherSubsystem extends SubsystemBase {
         return new ParallelCommandGroup(
                 new InstantCommand(() -> Log.i("Launcher: ", "time taken for shot: " + timer.milliseconds())),
                 new InstantCommand(() -> robotHardware.setAlignmentLightColor(0.5))
+        );
+    }
+    public Command shootColor(SpindexSort spindexSort){
+        List<Double> visorPoses = getVisorPoses();
+        return new SequentialCommandGroup(
+                spindexSort.moveToColor(motif.get(0)),
+                new InstantCommand(() -> robotHardware.setLaunchVisorPosition(visorPoses.get(0))),
+                moveKicker(),
+                spindexSort.moveToColor(motif.get(1)),
+                new InstantCommand(() -> robotHardware.setLaunchVisorPosition(visorPoses.get(1))),
+                moveKicker(),
+                spindexSort.moveToColor(motif.get(2)),
+                new InstantCommand(() -> robotHardware.setLaunchVisorPosition(visorPoses.get(2))),
+                moveKicker(),
+                new InstantCommand(() -> spindex.moveToPose(INTAKE_POSE_1))
         );
     }
 }
