@@ -43,7 +43,7 @@ public class TeleopTestingForTurret extends LinearOpMode {
     private IntakeSubsystem intake;
     private LauncherSubsystem launch;
     private SpindexSort spindexSort;
-    public static boolean sort = false;
+    public static boolean sort = true;
     @Override
     public void runOpMode() throws InterruptedException {
             robotHardware = new RobotHardware(this.hardwareMap);
@@ -58,22 +58,20 @@ public class TeleopTestingForTurret extends LinearOpMode {
             launch = new LauncherSubsystem(robotHardware, follower, this.hardwareMap, spindex);
 
             chassis.init();
-            if(sort) spindexSort.init();
-            else spindex.initMove();
+            spindexSort.init();
 
             waitForStart();
 
             while(opModeIsActive()){
                 chassis.update();
-                launch.update();
+                launch.update(sort);
                 CommandScheduler.getInstance().run();
 
                 //still have sum goof spindex logic to fix
-                if(!spindex.isReadyToLaunch() && !sort){intake.runIntake(); spindex.intakeBalls();}
-                if(sort) spindexSort.update();
-                if(gamepad1.a)
-                    if(sort) CommandScheduler.getInstance().schedule(launch.shootColor(spindexSort));
-                    if(!sort) CommandScheduler.getInstance().schedule(launch.shootAll());
+//                if(!spindex.isReadyToLaunch() && !sort){intake.runIntake(); spindex.intakeBalls();}
+                spindexSort.update();
+                if(gamepad1.a) {launch.shootColor(spindexSort);}
+//                if(gamepad1.b) CommandScheduler.getInstance().schedule(launch.shootAll());
                 telemetry.update();
         }
     }
