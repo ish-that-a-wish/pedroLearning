@@ -31,7 +31,7 @@ public class SpindexSort extends SubsystemBase {
     public int currentIndex = 0;
 
     // ---------------- STATE ----------------
-    private enum State { IDLE, INTAKING, FULL, LAUNCHING }
+    public enum State { IDLE, INTAKING, FULL, LAUNCHING }
     private State state = State.IDLE;
 
     // ---------------- CONFIG ----------------
@@ -87,6 +87,9 @@ public class SpindexSort extends SubsystemBase {
                     state = State.FULL;
                     Log.i("Spindex", "State changed to FULL");
                 }
+                if(currentIndex == 1 && isEmpty() && !robot.didBallDetectionBeamBreak() && !robot.isSpindexBusy()){
+                    slots.clear(); // if the index is one and it's all empty then clear off all the slots
+                }
                 break;
 
             case FULL:
@@ -131,6 +134,9 @@ public class SpindexSort extends SubsystemBase {
                     Log.i("Spindex", "New closest slot for " + color + ": " + bestIndex + ", dist=" + dist);
                 }
             }
+//            else{
+//                return -1;
+//            }
         }
 
         Log.i("Spindex", "Closest slot index for " + color + " is " + bestIndex);
@@ -171,6 +177,9 @@ public class SpindexSort extends SubsystemBase {
         setAll(GameColors.NONE);
         state = State.IDLE;
         Log.i("Spindex", "Finish launch: reset all slots and state to IDLE");
+    }
+    public boolean isLaunching(){
+        return state == State.LAUNCHING;
     }
 
     // ---------------- COLOR ----------------
@@ -274,5 +283,27 @@ public class SpindexSort extends SubsystemBase {
         telemetry.addData("Index", currentIndex);
         Log.i("Spindex", "Telemetry - State: " + state + ", Index: " + currentIndex +
                 ", Slots: " + slots.get(0).ballColor + "|" + slots.get(1).ballColor + "|" + slots.get(2).ballColor);
+    }
+    public void setState(State state){this.state = state;}
+
+
+    public List<Integer> getPurpleSlotIndexes() {
+        List<Integer> purpleSlots = new ArrayList<>();
+        for (BallEntry slot : slots) {
+            if (slot.ballColor == GameColors.PURPLE) {
+                purpleSlots.add(slot.index);
+            }
+        }
+        return purpleSlots;
+    }
+
+    public List<Integer> getGreenSlotIndexes() {
+        List<Integer> greenSlots = new ArrayList<>();
+        for (BallEntry slot : slots) {
+            if (slot.ballColor == GameColors.GREEN) {
+                greenSlots.add(slot.index);
+            }
+        }
+        return greenSlots;
     }
 }

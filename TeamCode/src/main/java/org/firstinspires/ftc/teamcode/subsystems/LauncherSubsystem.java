@@ -25,7 +25,7 @@ public class LauncherSubsystem extends SubsystemBase {
     // ---------------- CORE ----------------
     private final RobotHardware robot;
     private final Follower follower;
-    private final SpindexSubsystem spindex;
+    private final SpindexSort spindex;
     private final DcMotorEx turret;
 
     // ---------------- TARGET ----------------
@@ -50,7 +50,7 @@ public class LauncherSubsystem extends SubsystemBase {
     public List<GameColors> motif = new ArrayList<>();
 
     public LauncherSubsystem(RobotHardware robot, Follower follower,
-                             HardwareMap hardwareMap, SpindexSubsystem spindex) {
+                             HardwareMap hardwareMap, SpindexSort spindex) {
 
         this.robot = robot;
         this.follower = follower;
@@ -71,10 +71,10 @@ public class LauncherSubsystem extends SubsystemBase {
 
     // ---------------- UPDATE ----------------
 
-    public void update(boolean sort) {
+    public void update() {
         currentPose = follower.getPose();
 
-        updateGoal(sort);
+        updateGoal();
         updateDistance();
         updateFlywheel();
         updateTurret();
@@ -82,10 +82,10 @@ public class LauncherSubsystem extends SubsystemBase {
         Log.i("Launcher", "Dist: " + distFromGoal);
     }
 
-    private void updateGoal(boolean sort) {
+    private void updateGoal() {
         goalPose = new Pose(xTarget, yTarget, Math.toRadians(45));
 
-        if (!shootOnMove || sort) {
+        if (!shootOnMove) {
             futureGoal = goalPose;
             return;
         }
@@ -154,11 +154,12 @@ public class LauncherSubsystem extends SubsystemBase {
     // ---------------- SHOOTING ----------------
 
     private double getShotTime() {
-        switch (spindex.getCurrentPose()) {
-            case LAUNCH_POSE_2: return shot2Ms;
-            case LAUNCH_POSE_3: return shot3Ms;
-            default: return shot1Ms;
+        if(spindex.isLaunching()) {
+            if (spindex.currentIndex == 2) return shot2Ms;
+            else if (spindex.currentIndex == 3) return shot3Ms;
+            else return shot1Ms;
         }
+        else return shot1Ms;
     }
 
     public Command moveKicker() {
@@ -187,37 +188,54 @@ public class LauncherSubsystem extends SubsystemBase {
         return new SequentialCommandGroup(commands.toArray(new Command[0]));
     }
 
-    public Command shootAll() {
+    public void shootColor() {
         List<Double> visor = getVisorPoses();
 
         List<Command> moves = List.of(
-                new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_1)),
-                new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_3)),
-                new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_2))
+                spindex.moveToColor(motif.get(0)),
+                spindex.moveToColor(motif.get(1)),
+                spindex.moveToColor(motif.get(2))
         );
+        spindex.setState(SpindexSort.State.LAUNCHING);
+        if(!spindex.isFull()){shootWithoutFull();};
+        CommandScheduler.getInstance().schedule(
+                new SequentialCommandGroup(
+                        shootSequence(visor, moves),
 
-        return new SequentialCommandGroup(
-                shootSequence(visor, moves),
-                new InstantCommand(() -> spindex.moveToPose(INTAKE_POSE_1))
+                        new InstantCommand(spindex::finishLaunch),
+
+                        new InstantCommand(() -> spindex.moveToPose(0, true))
+                )
         );
     }
-
-    public void shootColor(SpindexSort sort) {
+    public void shootWithoutFull(){
+        List<Command> moves = new ArrayList<>();
         List<Double> visor = getVisorPoses();
+        List<Integer> purpleSlots = spindex.getPurpleSlotIndexes();
+        List<Integer> greenSlots = spindex.getGreenSlotIndexes();
+        int totalBalls = purpleSlots.size() + greenSlots.size();
 
-        List<Command> moves = List.of(
-                sort.moveToColor(motif.get(0)),
-                sort.moveToColor(motif.get(1)),
-                sort.moveToColor(motif.get(2))
-        );
+        if(totalBalls > 0){
+            int i = 0;
+            while(i < totalBalls){
+                if(motif.get(i) == GameColors.PURPLE){
+                    moves.add(spindex.moveToColor(GameColors.PURPLE));
+                }
+                if(motif.get(i) == GameColors.GREEN){
+                    moves.add(spindex.moveToColor(GameColors.PURPLE));
+                }
+                i++;
+            }
+        }
+        else{return;}
 
         CommandScheduler.getInstance().schedule(
                 new SequentialCommandGroup(
                         shootSequence(visor, moves),
 
-                        new InstantCommand(sort::finishLaunch),
+                        new InstantCommand(spindex::finishLaunch),
 
-                        new InstantCommand(() -> sort.moveToPose(0, true))
+                        new InstantCommand(() -> spindex.moveToPose(0, true))
                 )
         );
     }
@@ -230,9 +248,4 @@ public class LauncherSubsystem extends SubsystemBase {
                 .visorPositions;
     }
 
-    // ---------------- SETTINGS ----------------
-
-    public void setShootOnMove(boolean enabled) {
-        this.shootOnMove = enabled;
-    }
 }
