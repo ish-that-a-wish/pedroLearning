@@ -7,7 +7,8 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-public class ChassisControl {
+public class
+ChassisControl {
     private DcMotorEx frontRightDriveMotor;
     private DcMotorEx frontLeftDriveMotor;
     private DcMotorEx backRightDriveMotor;

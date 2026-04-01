@@ -37,9 +37,6 @@ public class SpindexSort extends SubsystemBase {
     // ---------------- CONFIG ----------------
     public static long waitMs = 500;
 
-    // ---------------- INPUT ----------------
-    private boolean lastBeam = false;
-
     public SpindexSort(Telemetry telemetry, RobotHardware robot) {
         this.telemetry = telemetry;
         this.robot = robot;
@@ -104,15 +101,10 @@ public class SpindexSort extends SubsystemBase {
 
     // ---------------- BEAM BREAK ----------------
     private void handleBeamBreak() {
-        boolean beam = robot.didBallDetectionBeamBreak();
-        Log.i("Spindex", "Beam status: " + beam + ", lastBeam: " + lastBeam);
-
-        if (beam && !lastBeam && !robot.isSpindexBusy()) {
+        if(robot.didBallDetectionBeamBreak() && !robot.isSpindexBusy()){
             addColor(currentIndex, GameColors.UNKNOWN);
             Log.i("Spindex", "Beam detected, added UNKNOWN color at index " + currentIndex);
         }
-
-        lastBeam = beam;
     }
 
     // ---------------- CLOSEST SLOT LOGIC ----------------
