@@ -82,6 +82,8 @@ public class TeleopTestingForTurret extends LinearOpMode {
                     CommandScheduler.getInstance().schedule(launch.shootAll());
                 }
 
+                telemetry.addData("LAUNCHER: ", "Flywheel speed: " + robotHardware.getFlywheelVelocityInTPS());
+
                 CommandScheduler.getInstance().run();
                 telemetry.update();
         }

@@ -38,7 +38,7 @@ public class LauncherSubsystem extends SubsystemBase {
     private final DcMotorEx turret;
 
     // ---------------- TARGET ----------------
-    public static double xTarget = 131, yTarget = 138;
+    public static double xTarget = 130, yTarget = 133;
     private Pose currentGoalPose = new Pose(xTarget, yTarget, Math.toRadians(45));
     private Pose futureGoalPose;
 
@@ -58,8 +58,11 @@ public class LauncherSubsystem extends SubsystemBase {
 
     private final double ballRadius = 2.5; // in inches
     private final double robotHeight = 14; // in inches
-    private final double goalHeight = 38.75; // in inches
+    public static double goalHeight = 38.75; // in inches
     private final double GRAVITY = 9.81;
+    public static double FLYWHEEL_MULTIPLIER = 1;
+
+
     public LauncherSubsystem(RobotHardware robot, Follower follower,
                              HardwareMap hardwareMap, SpindexSubsystem spindex) {
 
@@ -245,7 +248,7 @@ public class LauncherSubsystem extends SubsystemBase {
 
         final double horizontalDistToTarget = Math.sqrt(Math.pow(targetX - robotX, 2) + Math.pow(targetY - robotY, 2));
         //maybe make it targetZ + horizontalDistToTarget if it doesn't work
-        final double flightTime = Math.sqrt(2 * (targetZ + horizontalDistToTarget) / gravityInches);
+        final double flightTime = Math.sqrt(2 * (targetZ) / gravityInches);
         final double requiredHorizontalVel = horizontalDistToTarget / flightTime;
         //maybe make it requiredVerticalVel = (gravityInches * flightTime) - requiredHorizontalVel
         final double requiredVerticalVel = (targetZ / flightTime) + ((gravityInches * flightTime)/2);
@@ -263,6 +266,8 @@ public class LauncherSubsystem extends SubsystemBase {
         final double hoodAngle = Math.toDegrees(Math.atan2(requiredVerticalVel, relativeHorizontalVel));
         BallLaunchParameters results = LaunchParametersLookup.getBallLaunchParameters(velocityCompensatedDistance);
         distFromGoal = velocityCompensatedDistance;
+
+        if(robotSpeed.getYComponent() < 0){results.flywheelVelocity *= FLYWHEEL_MULTIPLIER;}
         result.add(results.flywheelVelocity);
         result.add(turretAngle);
         result.add(results.visorPositions.get(0));
@@ -276,9 +281,11 @@ public class LauncherSubsystem extends SubsystemBase {
         Log.i("===LAUNCHER===", "With advanced: " + "Launcher speed: " + launchParameters.get(0));
         Log.i("===LAUNCHER===", "With advanced: " + "Turret angle: " + launchParameters.get(1));
         Log.i("===LAUNCHER===", "With advanced: " + "Hood angle: " + launchParameters.get(2));
+        Log.i("===LAUNCHER===", "With advanced: " + "Real flywheel speed: " + robot.getFlywheelVelocityInTPS());
 //        updateHood(launchParameters.get(2));
         updateTurret(launchParameters.get(1));
         robot.setFlywheelVelocityInTPS(launchParameters.get(0));
+        robot.setLaunchVisorPosition(launchParameters.get(2));
         currentGoalPose = new Pose(xTarget, yTarget);
     }
     public void updateHood(double deg) {
