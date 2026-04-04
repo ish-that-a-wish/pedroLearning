@@ -60,8 +60,8 @@ public class LauncherSubsystem extends SubsystemBase {
     private final double robotHeight = 14; // in inches
     public static double goalHeight = 38.75; // in inches
     private final double GRAVITY = 9.81;
-    public static double FLYWHEEL_MULTIPLIER = 1;
-
+    public static double FLYWHEEL_MULTIPLIER = 0.25;
+    public static double buffer = 10;
 
     public LauncherSubsystem(RobotHardware robot, Follower follower,
                              HardwareMap hardwareMap, SpindexSubsystem spindex) {
@@ -235,7 +235,8 @@ public class LauncherSubsystem extends SubsystemBase {
                 .getBallLaunchParameters(distFromGoal)
                 .visorPositions;
     }
-    public List<Double> predictAdvanced(Pose robotPose, Vector robotSpeed) {
+
+    public List<Double> predictAdvanced(Pose robotPose, Vector robotSpeed, Vector robotAcceleration) {
         List<Double> result = new ArrayList<>();
         final double targetX = currentGoalPose.getX() - Math.signum(currentGoalPose.getX()) * ballRadius;
         final double targetY = currentGoalPose.getY() - ballRadius;
@@ -243,31 +244,40 @@ public class LauncherSubsystem extends SubsystemBase {
         final double robotX = robotPose.getX();
         final double robotY = robotPose.getY();
 
+
         final double inchesPerMeters = 39.3701;
         final double gravityInches = GRAVITY * inchesPerMeters;
 
-        final double horizontalDistToTarget = Math.sqrt(Math.pow(targetX - robotX, 2) + Math.pow(targetY - robotY, 2));
-        //maybe make it targetZ + horizontalDistToTarget if it doesn't work
         final double flightTime = Math.sqrt(2 * (targetZ) / gravityInches);
-        final double requiredHorizontalVel = horizontalDistToTarget / flightTime;
-        //maybe make it requiredVerticalVel = (gravityInches * flightTime) - requiredHorizontalVel
-        final double requiredVerticalVel = (targetZ / flightTime) + ((gravityInches * flightTime)/2);
-        final double targetYawAngle = Math.atan2((targetY - robotY), (targetX - robotX));
-        final double targetVelX = Math.cos(targetYawAngle) * requiredHorizontalVel;
-        final double targetVelY = Math.sin(targetYawAngle) * requiredHorizontalVel;
-        final double relativeVelX = targetVelX - (robotSpeed.getXComponent());
-        final double relativeVelY = targetVelY - (robotSpeed.getYComponent()); // already returns in/s
-        final double relativeHorizontalVel = Math.sqrt(Math.pow(relativeVelX, 2) + Math.pow(relativeVelY, 2));        //cuz d = s*t
+
+        // 📍 Project robot position forward using x + vt + ½at²
+        final double futureRobotX = robotX + robotSpeed.getXComponent() * flightTime
+                + 0.5 * robotAcceleration.getXComponent() * Math.pow(flightTime, 2);
+        final double futureRobotY = robotY + robotSpeed.getYComponent() * flightTime
+                + 0.5 * robotAcceleration.getYComponent() * Math.pow(flightTime, 2);
+
+        // 🎯 Recalculate target direction from future robot position
+        final double correctedDistToTarget = Math.sqrt(Math.pow(targetX - futureRobotX, 2) + Math.pow(targetY - futureRobotY, 2));
+        final double correctedYawAngle = Math.atan2((targetY - futureRobotY), (targetX - futureRobotX));
+        final double correctedTargetVelX = Math.cos(correctedYawAngle) * (correctedDistToTarget / flightTime);
+        final double correctedTargetVelY = Math.sin(correctedYawAngle) * (correctedDistToTarget / flightTime);
+
+        // 🚀 Project robot velocity forward using v + at
+        final double effectiveRobotVelX = robotSpeed.getXComponent() + robotAcceleration.getXComponent() * flightTime;
+        final double effectiveRobotVelY = robotSpeed.getYComponent() + robotAcceleration.getYComponent() * flightTime;
+
+        final double relativeVelX = correctedTargetVelX - effectiveRobotVelX;
+        final double relativeVelY = correctedTargetVelY - effectiveRobotVelY;
+        final double relativeHorizontalVel = Math.sqrt(Math.pow(relativeVelX, 2) + Math.pow(relativeVelY, 2));
         final double velocityCompensatedDistance = relativeHorizontalVel * flightTime;
+
         Log.i("===LAUNCHER===", "With advanced: " + "Distance with vel comp: " + velocityCompensatedDistance);
-        //final launch speed should be how fast the ball goes tune later if needed//
-        final double finalLaunchSpeed = Math.sqrt(Math.pow(relativeHorizontalVel, 2) + Math.pow(requiredVerticalVel, 2));
+
         final double turretAngle = Math.toDegrees(Math.atan2(relativeVelY, relativeVelX) - robotPose.getHeading());
-        final double hoodAngle = Math.toDegrees(Math.atan2(requiredVerticalVel, relativeHorizontalVel));
         BallLaunchParameters results = LaunchParametersLookup.getBallLaunchParameters(velocityCompensatedDistance);
         distFromGoal = velocityCompensatedDistance;
 
-        if(robotSpeed.getYComponent() < 0){results.flywheelVelocity *= FLYWHEEL_MULTIPLIER;}
+        if (robotSpeed.getYComponent() < 0 && robotSpeed.getYComponent()>buffer) { results.flywheelVelocity *= FLYWHEEL_MULTIPLIER * Math.abs(robotSpeed.getYComponent()); } // if we slow put the multiplier really small, faster more
         result.add(results.flywheelVelocity);
         result.add(turretAngle);
         result.add(results.visorPositions.get(0));
@@ -276,13 +286,16 @@ public class LauncherSubsystem extends SubsystemBase {
         return result;
     }
 
-        public void updateAdvanced(){
-        List<Double> launchParameters = predictAdvanced(follower.getPose(), follower.getVelocity());
+    public void updateAdvanced() {
+        List<Double> launchParameters = predictAdvanced(
+                follower.getPose(),
+                follower.getVelocity(),
+                follower.getAcceleration()  // 🆕 passed in here
+        );
         Log.i("===LAUNCHER===", "With advanced: " + "Launcher speed: " + launchParameters.get(0));
         Log.i("===LAUNCHER===", "With advanced: " + "Turret angle: " + launchParameters.get(1));
         Log.i("===LAUNCHER===", "With advanced: " + "Hood angle: " + launchParameters.get(2));
         Log.i("===LAUNCHER===", "With advanced: " + "Real flywheel speed: " + robot.getFlywheelVelocityInTPS());
-//        updateHood(launchParameters.get(2));
         updateTurret(launchParameters.get(1));
         robot.setFlywheelVelocityInTPS(launchParameters.get(0));
         robot.setLaunchVisorPosition(launchParameters.get(2));
