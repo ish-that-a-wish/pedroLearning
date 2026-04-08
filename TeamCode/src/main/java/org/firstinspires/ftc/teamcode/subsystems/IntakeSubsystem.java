@@ -8,13 +8,18 @@ public class IntakeSubsystem extends SubsystemBase {
 
     private HardwareMap hwmap;
     public Motor intake;
+    double power;
 
     public IntakeSubsystem(HardwareMap hwmap){
         intake = new Motor(hwmap, "IntakeMotor", Motor.GoBILDA.RPM_1150);
+        this.power = power;
     }
 
+    public void setPower(double power){
+        this.power = power;
+    }
     public void runIntake(){
-        intake.set(1);
+        intake.set(power);
     }
 
     public void stopIntake(){

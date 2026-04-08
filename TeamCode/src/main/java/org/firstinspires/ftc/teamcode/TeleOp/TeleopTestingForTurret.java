@@ -17,11 +17,13 @@ import com.arcrobotics.ftclib.command.SequentialCommandGroup;
 import com.arcrobotics.ftclib.command.WaitCommand;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.VoltageUnit;
 import org.firstinspires.ftc.teamcode.Tests.Constants;
 import org.firstinspires.ftc.teamcode.common.BallLaunchParameters;
 import org.firstinspires.ftc.teamcode.common.LaunchParametersLookup;
@@ -46,6 +48,9 @@ public class TeleopTestingForTurret extends LinearOpMode {
     private SpindexSubsystem spindex;
     private IntakeSubsystem intake;
     private LauncherSubsystem launch;
+    private double Voltage = 12; // defualt to max
+
+    List<LynxModule> hubs;
 //    private SpindexSort spindexSort;
     @Override
     public void runOpMode() throws InterruptedException {
@@ -53,7 +58,7 @@ public class TeleopTestingForTurret extends LinearOpMode {
             spindex = new SpindexSubsystem(this.robotHardware);
             intake = new IntakeSubsystem(this.hardwareMap);
 //            spindexSort = new SpindexSort(telemetry, robotHardware);
-
+            intake.setPower(1);
             follower = Constants.createFollower(this.hardwareMap);
             follower.setStartingPose(new Pose(72, 72, Math.toRadians(90)));
             chassis = new ChassisControl(gamepad1, follower, this.hardwareMap);
@@ -77,15 +82,21 @@ public class TeleopTestingForTurret extends LinearOpMode {
                 }
                 if(spindex.isReadyToLaunch()){intake.stopIntake();}
 
-
                 if(gamepad1.aWasPressed()) {
                     CommandScheduler.getInstance().schedule(launch.shootAll());
                 }
 
+                if(gamepad1.bWasPressed()){
+                    follower.setPose(new Pose(72,72, Math.toRadians(90)));
+                }
+
+                telemetry.addData("SPINDEX", "SPINDEX READY TO LAUNCH: " + spindex.isReadyToLaunch());
+                telemetry.addData("SPINDEX: ", "CURRENT POSE: " + spindex.getCurrentPose().toString());
                 telemetry.addData("LAUNCHER: ", "Flywheel speed: " + robotHardware.getFlywheelVelocityInTPS());
 
                 CommandScheduler.getInstance().run();
                 telemetry.update();
+
         }
     }
 }

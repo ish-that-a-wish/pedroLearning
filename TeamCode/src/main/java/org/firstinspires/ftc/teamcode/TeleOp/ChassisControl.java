@@ -26,7 +26,7 @@ ChassisControl {
 
         followGamepadInputs();
     }
-    public void followGamepadInputs(){
+    public void followGamepadInputs( ){
 
         double speed = -gamepad1.left_stick_y;
         double strafe = gamepad1.left_stick_x;

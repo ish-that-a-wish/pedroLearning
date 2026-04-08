@@ -60,7 +60,14 @@ public class LauncherSubsystem extends SubsystemBase {
     private final double robotHeight = 14; // in inches
     public static double goalHeight = 38.75; // in inches
     private final double GRAVITY = 9.81;
-    public static double FLYWHEEL_MULTIPLIER = 0.25;
+    public static double HORIZONTAL_FLYWHEEL_SPINDEX_1_MULTIPLIER = 0.11;
+    public static double HORIZONTAL_FLYWHEEL_SPINDEX_2_MULTIPLIER = 0.11;
+    public static double HORIZONTAL_FLYWHEEL_SPINDEX_3_MULTIPLIER = 0.11;
+    public static double VERTICAL_FLYWHEEL_SPINDEX_1_MULTIPLIER = 0.21;
+    public static double VERTICAL_FLYWHEEL_SPINDEX_2_MULTIPLIER = 0.25;
+    public static double VERTICAL_FLYWHEEL_SPINDEX_3_MULTIPLIER = 0.12;
+
+
     public static double buffer = 10;
 
     public LauncherSubsystem(RobotHardware robot, Follower follower,
@@ -92,6 +99,7 @@ public class LauncherSubsystem extends SubsystemBase {
         Log.i("===LAUNCHER SUBSYS===", "Current pose: " + follower.getPose());
         Log.i("===LAUNCHER SUBSYS=== ", "Dist: " + distFromGoal);
     }
+
     private void updateGoal() {
         currentGoalPose = new Pose(xTarget, yTarget, Math.toRadians(45));
 
@@ -177,7 +185,7 @@ public class LauncherSubsystem extends SubsystemBase {
     // ---------------- SHOOTING ----------------
 
     private double getShotTime() {
-        if(spindex.getCurrentPose() != null) {
+        if (spindex.getCurrentPose() != null) {
             switch (spindex.getCurrentPose()) {
                 case LAUNCH_POSE_2:
                     return shot2Ms;
@@ -186,8 +194,7 @@ public class LauncherSubsystem extends SubsystemBase {
                 default:
                     return shot1Ms;
             }
-        }
-        else{
+        } else {
             return shot1Ms; // always js defualt to shot 1
         }
     }
@@ -222,7 +229,7 @@ public class LauncherSubsystem extends SubsystemBase {
                 new InstantCommand(() -> robot.setLaunchVisorPosition(visor.get(2))),
                 new MoveSpindexCommand(spindex, robot, LAUNCH_POSE_2),
                 moveKicker(),
-                new InstantCommand(()->Log.i("===LAUNCHER SUBSYS===", "FINISHED LAUNCHING")),
+                new InstantCommand(() -> Log.i("===LAUNCHER SUBSYS===", "FINISHED LAUNCHING")),
                 new MoveSpindexCommand(spindex, robot, INTAKE_POSE_1)
         );
     }
@@ -277,7 +284,47 @@ public class LauncherSubsystem extends SubsystemBase {
         BallLaunchParameters results = LaunchParametersLookup.getBallLaunchParameters(velocityCompensatedDistance);
         distFromGoal = velocityCompensatedDistance;
 
-        if (robotSpeed.getYComponent() < 0 && robotSpeed.getYComponent()>buffer) { results.flywheelVelocity *= FLYWHEEL_MULTIPLIER * Math.abs(robotSpeed.getYComponent()); } // if we slow put the multiplier really small, faster more
+
+        // plz speed work
+        if (robotSpeed.getYComponent() < 0 && robotSpeed.getYComponent() > buffer) {
+            Log.i("===ROBOT===", "RUNNING HORIZONTAL FLYWHEEL MULTIPLIER");
+            double multiplier = VERTICAL_FLYWHEEL_SPINDEX_1_MULTIPLIER;
+            switch(spindex.getCurrentPose()){
+                case LAUNCH_POSE_1:
+                    multiplier = VERTICAL_FLYWHEEL_SPINDEX_1_MULTIPLIER;
+                    break;
+                case LAUNCH_POSE_2:
+                    multiplier = VERTICAL_FLYWHEEL_SPINDEX_2_MULTIPLIER;
+                    break;
+                case LAUNCH_POSE_3:
+                    multiplier = VERTICAL_FLYWHEEL_SPINDEX_3_MULTIPLIER;
+                    break;
+            }
+            results.flywheelVelocity *= multiplier * Math.abs(robotSpeed.getYComponent());
+        } // if we slow put the multiplier really small, faster more
+        if (robotSpeed.getXComponent() < 0 && Math.abs(robotSpeed.getXComponent()) > buffer) {
+            Log.i("===ROBOT===", "RUNNING HORIZONTAL FLYWHEEL MULTIPLIER");
+            double multiplier = HORIZONTAL_FLYWHEEL_SPINDEX_1_MULTIPLIER;
+            switch(spindex.getCurrentPose()){
+                case LAUNCH_POSE_1:
+                    multiplier = HORIZONTAL_FLYWHEEL_SPINDEX_1_MULTIPLIER;
+                    break;
+                case LAUNCH_POSE_2:
+                    multiplier = HORIZONTAL_FLYWHEEL_SPINDEX_2_MULTIPLIER;
+                    break;
+                case LAUNCH_POSE_3:
+                    multiplier = HORIZONTAL_FLYWHEEL_SPINDEX_3_MULTIPLIER;
+                    break;
+            }
+            results.flywheelVelocity *= multiplier * Math.abs(robotSpeed.getYComponent());
+            results.flywheelVelocity *= multiplier * Math.abs(robotSpeed.getXComponent());
+        }
+
+
+        Log.i("===ROBOT=== ", "CURRENT VERTICAL SPEED: " + robotSpeed.getYComponent());
+        Log.i("===ROBOT===", "CURRENT HORIZONTAL SPEED: " + robotSpeed.getXComponent());
+
+
         result.add(results.flywheelVelocity);
         result.add(turretAngle);
         result.add(results.visorPositions.get(0));
