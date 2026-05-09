@@ -22,6 +22,7 @@ import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -33,8 +34,11 @@ import java.util.List;
 
 @Config
 public class LauncherSubsystem extends SubsystemBase {
+    public static double turretLimits = 110;
     public ElapsedTime timer = new ElapsedTime();
-    public static double shootTimeMs = 200;
+    public static double shot1ms = 570;
+    public static double shot2ms = 470;
+    public static double shot3ms = 470;
     private final double turretTicksPerRev = 751.8 * 5; // for torque increase
     public static double xTarget = 133;
     public static double yTarget = 137;
@@ -63,10 +67,11 @@ public class LauncherSubsystem extends SubsystemBase {
         FAR
     }
     public Distance currentDistance;
-    public Pose futurePose; // defualt to it being noting
+//    public Pose futurePose; // defualt to it being noting
     private double amountToTurn;
-    private boolean shootOnMove = false;
-    private Pose poseUsed;
+//    private boolean shootOnMove = true;
+    private Pose futureGoal;
+    private Pose goalUsed;
     public LauncherSubsystem(RobotHardware robotHardware, Follower follower, HardwareMap hardwareMap, SpindexSubsystem spindex){
         this.spindex = spindex;
         this.hardwareMap = hardwareMap;
@@ -84,42 +89,52 @@ public class LauncherSubsystem extends SubsystemBase {
 
     public void update(){
         currentPose = follower.getPose();
-        if(shootOnMove) shootOnMove();
+        RED_GOAL_POSE = new Pose(xTarget, yTarget);
 
-        poseUsed = shootOnMove ? futurePose : currentPose;
-        distFromGoal = poseUsed.distanceFrom(RED_GOAL_POSE);
+        shootOnMove();
 
+        goalUsed =  futureGoal;
+
+        distFromGoal = currentPose.distanceFrom(goalUsed);
+//        turret.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(27,0,6,0));
         keepLauncherWarm();
         updateTurret();
         changeGoalByDist();
 
         Log.i("Launcher: ", "Dist from goal: " + distFromGoal);
-        Log.i("Launcher: ", "shooting on move: " + shootOnMove);
-        Log.i("Launcher: ", "Current Pose: " + (shootOnMove ? futurePose : currentPose));
+//        Log.i("Launcher: ", "Current Pose: " + (shootOnMove ? futurePose : currentPose));
     }
 
     public void keepLauncherWarm(){
         BallLaunchParameters ballLaunchParameters = LaunchParametersLookup.getBallLaunchParameters(distFromGoal);
         double flywheelSpeed = ballLaunchParameters.flywheelVelocity;
         robotHardware.setFlywheelVelocityInTPS(flywheelSpeed); // set the speed of the flywheel
-
-        Log.i("Launcher: "," Target Velocity: " + flywheelSpeed);
+//        Log.i("LAUNCHER PREV LOOKUP TABLE","Dist from goal: " + (currentPose.distanceFrom(RED_GOAL_POSE)));
+//        Log.i("LAUNCHER PREV LOOKUP TABLE", "Flywheel velocity" + ballLaunchParameters.flywheelVelocity);
+//        Log.i("LAUNCHER PREV LOOKUP TABLE")
     }
+
+//    public void customLaunch(double velocity, double pos){
+//        robotHardware.setFlywheelVelocityInTPS(velocity);
+//        robotHardware.setLaunchVisorPosition(pos);
+//        robotHardware.
+//    }
 
     public double calculateAmountToTurnToGoal(){
         amountToTurn = Math.atan2(
-                RED_GOAL_POSE.getY() - poseUsed.getY(),
-                RED_GOAL_POSE.getX() - poseUsed.getX()
+                goalUsed.getY() - currentPose.getY(),
+                goalUsed.getX() - currentPose.getX()
         );
-        return Math.toDegrees(amountToTurn - poseUsed.getHeading());
+        Log.i("Launcher: ", "Target deg w/o shoot on move" + Math.toDegrees(amountToTurn - currentPose.getHeading()));
+        return Math.toDegrees(amountToTurn - currentPose.getHeading());
     }
     public double degreesToTicks(double deg){
         return (deg/360) * turretTicksPerRev;
     }
     public void updateTurret(){
         double deg = calculateAmountToTurnToGoal();
-        if(deg > 90) return;
-        if (deg < -90) return;
+        if(deg > turretLimits) return;
+        if (deg < -turretLimits) return;
         int ticks = (int) degreesToTicks(deg);
 
         turret.setDirection(ticks < 0 ? DcMotorEx.Direction.FORWARD : DcMotorEx.Direction.REVERSE);
@@ -128,7 +143,7 @@ public class LauncherSubsystem extends SubsystemBase {
         turret.setTargetPosition(Math.abs(ticks));
         turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         turret.setVelocity(velocity);
-        follower.getVelocity();
+//        follower.getVelocity();
     }
     public List<Double> getVisorPoses(){
         BallLaunchParameters ballLaunchParameters = LaunchParametersLookup.getBallLaunchParameters(distFromGoal);
@@ -151,14 +166,17 @@ public class LauncherSubsystem extends SubsystemBase {
                 new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_1)),
                 new InstantCommand(() -> robotHardware.setLaunchVisorPosition(visorPoses.get(0))),
                 new InstantCommand(() -> getTimeToShoot(LAUNCH_POSE_1)),
+                new InstantCommand(this::keepLauncherWarm),
                 moveKicker(),
                 new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_3)),
                 new InstantCommand(() -> robotHardware.setLaunchVisorPosition(visorPoses.get(1))),
                 new InstantCommand(() -> getTimeToShoot(LAUNCH_POSE_3)),
+                new InstantCommand(this::keepLauncherWarm),
                 moveKicker(),
                 new InstantCommand(() -> spindex.moveToPose(LAUNCH_POSE_2)),
                 new InstantCommand(() -> robotHardware.setLaunchVisorPosition(visorPoses.get(2))),
                 new InstantCommand(() -> getTimeToShoot(LAUNCH_POSE_2)),
+                new InstantCommand(this::keepLauncherWarm),
                 moveKicker(),
                 new InstantCommand(() -> spindex.moveToPose(INTAKE_POSE_1))
         );
@@ -185,17 +203,32 @@ public class LauncherSubsystem extends SubsystemBase {
     // to shoot on the move, take into account the current velocity of our robot
     // & the amount of time it takes to shoot 3 artifacts
     public void shootOnMove(){
+
+        double shootTimeMs = shot1ms;
+        switch (spindex.getCurrentPose()){
+            case LAUNCH_POSE_1:
+                shootTimeMs = shot1ms;
+                break;
+            case LAUNCH_POSE_2:
+                shootTimeMs = shot2ms;
+                break;
+            case LAUNCH_POSE_3:
+                shootTimeMs = shot3ms;
+                break;
+            default:
+                shootTimeMs = shot1ms;
+                break;
+        }
         currentPose = follower.getPose();
         Vector velocity = follower.getVelocity();
         double t = shootTimeMs / 1000.0; // convert ms -> seconds
 
-        futurePose = new Pose(
-                currentPose.getX() + velocity.getXComponent() * t,
-                currentPose.getY() + velocity.getYComponent() * t,
-                currentPose.getHeading() + velocity.getTheta() * t
+        futureGoal = new Pose(
+                RED_GOAL_POSE.getX() - velocity.getXComponent() * t,
+                RED_GOAL_POSE.getY() - velocity.getYComponent() * t
         );
     }
-    public void setShootOnMove(boolean shootOnMove){this.shootOnMove = shootOnMove;}
+//    public void setShootOnMove(boolean shootOnMove){this.shootOnMove = shootOnMove;}
 //    public boolean getShootOnMove(){return shootOnMove;}
     //get the spindex pose to see how long it takes for each diff pos
     public void getTimeToShoot(SpindexSubsystem.SpindexPoses spindexPose){
@@ -210,4 +243,22 @@ public class LauncherSubsystem extends SubsystemBase {
                 Log.i("Launcher: ", "Time to shoot third ball: " + timer.milliseconds());
         }
     }
+    //IMPORANT: This function only exists for logs, don't use irl cuz it wont do nun
+//    public void getShootOnMoveTarget(){
+//        double t = shootTimeMs / 1000.0; // convert ms -> seconds
+//        Vector velocity = follower.getVelocity();
+//        futurePose = new Pose(
+//                currentPose.getX() + velocity.getXComponent() * t,
+//                currentPose.getY() + velocity.getYComponent() * t,
+//                currentPose.getHeading() + velocity.getTheta() * t
+//        );
+//        amountToTurn = Math.atan2(
+//                RED_GOAL_POSE.getY() - futurePose.getY(),
+//                RED_GOAL_POSE.getX() - futurePose.getX()
+//        );
+//        Log.i("Follower: ", "Y Velocity: " + velocity.getYComponent());
+//        Log.i("Follower: ", "X Velocity: " + velocity.getXComponent());
+//
+//        Log.i("Launcher: ", "Target deg w/ shoot on move" + Math.toDegrees(amountToTurn - futurePose.getHeading()));
+//    }
 }

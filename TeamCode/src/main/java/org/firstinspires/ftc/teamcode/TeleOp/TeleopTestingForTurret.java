@@ -35,7 +35,7 @@ import java.util.List;
 @Config
 @TeleOp
 public class TeleopTestingForTurret extends LinearOpMode {
-    public static boolean shootOnMove = false; // set by false by defualt
+    public static boolean shootOnMove = true; // set by false by defualt
     public ChassisControl chassis;
     private Follower follower;
     private RobotHardware robotHardware;
@@ -64,11 +64,10 @@ public class TeleopTestingForTurret extends LinearOpMode {
                 launch.update();
                 CommandScheduler.getInstance().run();
 
-                //still have sum goof spindex logic to fix
-                if(!spindex.isReadyToLaunch()){intake.runIntake(); spindex.intakeBalls();}
-                if(gamepad1.a) CommandScheduler.getInstance().schedule(launch.shootAll());
 
-                launch.setShootOnMove(shootOnMove); //constantly update shoot on move for testing
+                //still have sum goof spindex logic to fix
+                if(!spindex.isReadyToLaunch()){spindex.intakeBalls();}
+                if(gamepad1.a) CommandScheduler.getInstance().schedule(launch.shootAll());
 
                 telemetry.update();
         }

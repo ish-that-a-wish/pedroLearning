@@ -53,24 +53,24 @@ public class LaunchCommand extends CommandBase {
     public void launchArtifacts(){
 
         robotHardware.setFlywheelVelocityInTPS(FLYWHEEL_PERCENT * 2800);
-        if(launcherSubsystem.limelightYDT != null) {
-            Log.i("Launcher", "Distance: " + launcherSubsystem.limelightYDT.distance);
-        }
-        if(robotHardware.getLatestLimelightResults().isValid()){
-            Log.i("== ROBOT HARDWARE ==", "Limelight results are valid");
-        }
-
-        if(spindex.getCurrentPose() == SpindexSubsystem.SpindexPoses.INTAKE_POSE_3){
-            robotHardware.setLaunchVisorPosition(firstVisor);
-        }
-
-        if(spindex.getCurrentPose() == SpindexSubsystem.SpindexPoses.LAUNCH_POSE_1){
-            robotHardware.setLaunchVisorPosition(secondVisor);
-        }
-
-        if(spindex.getCurrentPose() == SpindexSubsystem.SpindexPoses.LAUNCH_POSE_2){
-            robotHardware.setLaunchVisorPosition(thirdVisor);
-        }
+//        if(launcherSubsystem.limelightYDT != null) {
+//            Log.i("Launcher", "Distance: " + launcherSubsystem.limelightYDT.distance);
+//        }
+//        if(robotHardware.getLatestLimelightResults().isValid()){
+//            Log.i("== ROBOT HARDWARE ==", "Limelight results are valid");
+//        }
+//
+//        if(spindex.getCurrentPose() == SpindexSubsystem.SpindexPoses.INTAKE_POSE_3){
+//            robotHardware.setLaunchVisorPosition(firstVisor);
+//        }
+//
+//        if(spindex.getCurrentPose() == SpindexSubsystem.SpindexPoses.LAUNCH_POSE_1){
+//            robotHardware.setLaunchVisorPosition(secondVisor);
+//        }
+//
+//        if(spindex.getCurrentPose() == SpindexSubsystem.SpindexPoses.LAUNCH_POSE_2){
+//            robotHardware.setLaunchVisorPosition(thirdVisor);
+//        }
 
     }
 

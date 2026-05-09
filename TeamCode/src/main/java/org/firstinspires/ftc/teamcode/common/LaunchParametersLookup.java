@@ -76,8 +76,8 @@ public class LaunchParametersLookup {
         new LaunchParameters(81.0,  0.45, 0.15, 0.15, 0.15),
 
         new LaunchParameters(86.0,   0.45, 0.25, 0.25,0.25),
-        new LaunchParameters(93.0,   0.47, 0.35, 0.35,0.35),
-
+        new LaunchParameters(93.0,   0.44, 0.25, 0.25,0.25),
+        new LaunchParameters(108, 0.48, 0.25,0.25,0.25),
         new LaunchParameters(127.0,  0.525, 0.69,0.62,0.60),
         new LaunchParameters(129.0,  0.525, 0.69,0.62,0.61),
         new LaunchParameters(133.0,  0.525, 0.67,0.64,0.64),
